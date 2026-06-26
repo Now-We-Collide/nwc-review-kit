@@ -3,19 +3,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { fetchComments, createComment, setStatus, type Anchor, type Comment } from "./comments";
-import { reviewConfig } from "./config";
+import { fetchComments, createComment, setStatus, type Anchor, type Comment, type DbConfig } from "./comments";
+import { useReviewKit } from "./FeedbackProvider";
 
 /*
-  In-page commenting overlay. Renders only when `enabled`. While on, a
-  click anywhere on the page (not on review UI) drops an element-anchored
-  comment. The bottom-right panel lists/resolves comments. Resolved
-  comments are kept in the DB (status='resolved'); the view shows open.
+  In-page commenting overlay. Reads config + on/off state from context.
+  While on, a click anywhere on the page (not on review UI) drops an
+  element-anchored comment. Resolved comments are kept (status='resolved').
 */
 
-const ACCENT = reviewConfig.brand.accent; // fills (assumes a light/cyan-ish accent)
-const ACCENT_INK = "#06222a"; // dark text on the accent
-const ACCENT_TEXT = "#0b7d92"; // readable accent text on white
+const ACCENT_INK = "#06222a";
+const ACCENT_TEXT = "#0b7d92";
 const PANEL_BG = "#0d0d0f";
 const Z = 2147483000;
 
@@ -42,13 +40,11 @@ function deviceLabel(w: number): string {
 
 function buildAnchor(target: Element, clientX: number, clientY: number): Anchor {
   const r = target.getBoundingClientRect();
-  const ox = r.width ? (clientX - r.left) / r.width : 0.5;
-  const oy = r.height ? (clientY - r.top) / r.height : 0.5;
   const doc = document.documentElement;
   return {
     sel: cssPath(target),
-    ox,
-    oy,
+    ox: r.width ? (clientX - r.left) / r.width : 0.5,
+    oy: r.height ? (clientY - r.top) / r.height : 0.5,
     px: (clientX + window.scrollX) / Math.max(doc.scrollWidth, 1),
     py: (clientY + window.scrollY) / Math.max(doc.scrollHeight, 1),
     device: deviceLabel(window.innerWidth),
@@ -58,10 +54,7 @@ function buildAnchor(target: Element, clientX: number, clientY: number): Anchor 
 function resolvePos(a: Anchor): { x: number; y: number } {
   if (a.sel) {
     const el = document.querySelector(a.sel);
-    if (el) {
-      const r = el.getBoundingClientRect();
-      return { x: r.left + window.scrollX + a.ox * r.width, y: r.top + window.scrollY + a.oy * r.height };
-    }
+    if (el) { const r = el.getBoundingClientRect(); return { x: r.left + window.scrollX + a.ox * r.width, y: r.top + window.scrollY + a.oy * r.height }; }
   }
   const doc = document.documentElement;
   return { x: a.px * doc.scrollWidth, y: a.py * doc.scrollHeight };
@@ -76,7 +69,11 @@ function stamp(c: Comment): string {
 
 type Draft = { x: number; y: number; anchor: Anchor };
 
-export default function CommentLayer({ enabled }: { enabled: boolean }) {
+export default function CommentLayer() {
+  const { config, enabled } = useReviewKit();
+  const ACCENT = config.brand.accent;
+  const db: DbConfig = { supabaseUrl: config.supabaseUrl, supabaseAnonKey: config.supabaseAnonKey, projectId: config.projectId };
+
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -88,20 +85,16 @@ export default function CommentLayer({ enabled }: { enabled: boolean }) {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (typeof window !== "undefined") setName(localStorage.getItem("nwc_feedback_name") || "");
-  }, []);
+  useEffect(() => { if (typeof window !== "undefined") setName(localStorage.getItem("nwc_feedback_name") || ""); }, []);
 
   const load = useCallback(() => {
-    fetchComments(pathname)
+    fetchComments(db, pathname)
       .then((c) => { setComments(c.filter((x) => x.status !== "resolved")); setErr(null); })
       .catch((e) => setErr(`Could not load: ${(e as Error).message}`));
-  }, [pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, config.supabaseUrl, config.supabaseAnonKey, config.projectId]);
 
-  useEffect(() => {
-    if (enabled) load();
-    else { setDraft(null); setOpenId(null); }
-  }, [enabled, load]);
+  useEffect(() => { if (enabled) load(); else { setDraft(null); setOpenId(null); } }, [enabled, load]);
 
   useLayoutEffect(() => {
     if (!enabled) return;
@@ -112,16 +105,11 @@ export default function CommentLayer({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (!openId) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Element | null;
-      if (t && t.closest("[data-nwc-pop]")) return;
-      setOpenId(null);
-    };
+    const onDown = (e: MouseEvent) => { const t = e.target as Element | null; if (t && t.closest("[data-nwc-pop]")) return; setOpenId(null); };
     document.addEventListener("mousedown", onDown, true);
     return () => document.removeEventListener("mousedown", onDown, true);
   }, [openId]);
 
-  // Click-to-comment while enabled.
   useEffect(() => {
     if (!enabled) return;
     document.body.style.cursor = draft || openId ? "" : "crosshair";
@@ -144,19 +132,17 @@ export default function CommentLayer({ enabled }: { enabled: boolean }) {
     if (!draft || !bodyText.trim() || !name.trim()) return;
     localStorage.setItem("nwc_feedback_name", name.trim());
     try {
-      const c = await createComment({ pagePath: pathname, anchor: draft.anchor, author: name.trim(), body: bodyText.trim() });
+      const c = await createComment(db, { pagePath: pathname, anchor: draft.anchor, author: name.trim(), body: bodyText.trim() });
       setComments((prev) => [...prev, c]);
       setDraft(null);
       setBodyText("");
-    } catch (e) {
-      setErr(`Could not save: ${(e as Error).message}`);
-    }
+    } catch (e) { setErr(`Could not save: ${(e as Error).message}`); }
   };
 
   const toggleResolved = async (c: Comment) => {
     const next = c.status === "open" ? "resolved" : "open";
     setComments((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: next } : x)));
-    try { await setStatus(c.id, next); } catch { setErr("Could not update."); }
+    try { await setStatus(db, c.id, next); } catch { setErr("Could not update."); }
   };
 
   if (!mounted || !enabled) return null;
@@ -210,7 +196,7 @@ export default function CommentLayer({ enabled }: { enabled: boolean }) {
       <div style={{ position: "fixed", right: 16, bottom: 16, width: 300, maxHeight: "60vh", display: "flex", flexDirection: "column", background: PANEL_BG, color: "#e7e9ee", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,.45)", zIndex: Z + 4, overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
         <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.1)", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: ACCENT }} />
-          <strong style={{ fontSize: 13 }}>{reviewConfig.brand.name} Feedback</strong>
+          <strong style={{ fontSize: 13 }}>{config.brand.name} Feedback</strong>
           <span style={{ marginLeft: "auto", fontSize: 11, color: "#9aa0ad" }}>{openCount} open</span>
         </div>
         <div style={{ overflowY: "auto", padding: 8 }}>

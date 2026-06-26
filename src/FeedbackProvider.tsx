@@ -1,22 +1,35 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import type { ReviewConfig } from "./config";
 import CommentLayer from "./CommentLayer";
 
-type FeedbackCtx = { enabled: boolean; toggle: () => void };
-const Ctx = createContext<FeedbackCtx>({ enabled: false, toggle: () => {} });
+/*
+  ReviewKitProvider — the consumer passes its own config here. All kit
+  components read config (and the feedback on/off state) from context,
+  so the kit isn't tied to any single project.
+*/
 
-export function useFeedback() {
-  return useContext(Ctx);
+type Ctx = { config: ReviewConfig; enabled: boolean; toggle: () => void };
+const ReviewCtx = createContext<Ctx | null>(null);
+
+export function useReviewKit(): Ctx {
+  const c = useContext(ReviewCtx);
+  if (!c) throw new Error("useReviewKit must be used inside <ReviewKitProvider>");
+  return c;
 }
 
-export default function FeedbackProvider({ children }: { children: React.ReactNode }) {
+export function useFeedback() {
+  const { enabled, toggle } = useReviewKit();
+  return { enabled, toggle };
+}
+
+export default function ReviewKitProvider({ config, children }: { config: ReviewConfig; children: React.ReactNode }) {
   const [enabled, setEnabled] = useState(false);
-  const toggle = () => setEnabled((e) => !e);
   return (
-    <Ctx.Provider value={{ enabled, toggle }}>
+    <ReviewCtx.Provider value={{ config, enabled, toggle: () => setEnabled((e) => !e) }}>
       {children}
-      <CommentLayer enabled={enabled} />
-    </Ctx.Provider>
+      <CommentLayer />
+    </ReviewCtx.Provider>
   );
 }

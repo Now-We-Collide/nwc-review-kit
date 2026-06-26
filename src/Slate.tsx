@@ -1,12 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { reviewConfig, type Tone } from "./config";
+import { useReviewKit } from "./FeedbackProvider";
+import type { Tone } from "./config";
 
 /*
   The "clapperboard" slate: a dark, branded gateway that makes the
-  draft status unmissable. Render this from your app's "/" route.
+  draft status unmissable. Render this from the consumer's "/" route
+  (it must sit inside <ReviewKitProvider>).
 */
 
-const ACCENT = reviewConfig.brand.accent;
 const toneColor: Record<Tone, string> = { good: "#4ade80", warn: "#fbbf24", todo: "#9aa0ad" };
 
 function StatusChip({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -28,7 +31,9 @@ function Callout({ text, className }: { text: string; className: string }) {
 }
 
 export default function Slate() {
-  const { brand, slate, pages } = reviewConfig;
+  const { config } = useReviewKit();
+  const { brand, slate, pages } = config;
+  const ACCENT = brand.accent;
   return (
     <main className="relative min-h-[calc(100vh-56px)] overflow-hidden bg-[#0d0d0f] text-white">
       <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,0.05), transparent 60%)" }} />
