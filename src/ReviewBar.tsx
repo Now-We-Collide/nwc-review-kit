@@ -6,18 +6,52 @@ import { useEffect, useRef, useState } from "react";
 import { useReviewKit } from "./FeedbackProvider";
 
 /*
-  Client review nav bar. Reads config + feedback state from context.
+  Client review nav bar. Self-styled (injected CSS, no dependency on the
+  host app's Tailwind) so it renders identically on any site.
+
   Full-width dark bar at the top; on scroll it morphs into a floating
-  glass pill (logo mark + tabs). Comment button (accent) is far-right
-  when expanded and a separate bubble beside the pill when scrolled.
+  glass pill. The logo is pinned to the bar's corner when expanded and
+  slides into the pill (on the glass) when collapsed. The Comment button
+  mirrors that on the right, becoming its own accent bubble.
 */
 
 const BAR_BG = "#0d0d0f";
 const DROP_BG = "#1a1a1f";
 
+const CSS = `
+.nwc-bar{position:sticky;top:0;z-index:50;pointer-events:none;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.nwc-bar *{box-sizing:border-box}
+.nwc-bar a{text-decoration:none;color:inherit}
+.nwc-bar .inner{position:relative}
+.nwc-bar .bg{position:absolute;inset:0;transition:opacity .3s}
+.nwc-bar .row{position:relative;margin:0 auto;display:flex;min-height:56px;max-width:80rem;align-items:center;justify-content:center;padding:0 20px}
+.nwc-bar .pill{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:2px;border:1px solid transparent;padding:6px 8px;transition:max-width .3s ease-out,background-color .3s,border-color .3s,border-radius .3s}
+.nwc-bar .logo{pointer-events:auto;z-index:10;display:flex;align-items:center;transition:margin .3s}
+.nwc-bar .logo img{height:20px;width:auto;display:block}
+.nwc-bar .proto{overflow:hidden;white-space:nowrap;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:rgba(255,255,255,.6);transition:max-width .3s,opacity .3s}
+.nwc-bar .tab{position:relative;display:flex;align-items:center;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.65);transition:background-color .15s,color .15s;cursor:pointer}
+.nwc-bar .tab:hover{background:rgba(255,255,255,.1);color:#fff}
+.nwc-bar .tab.active{background:rgba(255,255,255,.1);color:#fff}
+.nwc-bar .caret{margin-left:2px;opacity:.55;transition:transform .2s}
+.nwc-bar .caret.open{transform:rotate(180deg)}
+.nwc-bar .menu{position:absolute;left:50%;top:100%;z-index:50;transform:translateX(-50%);padding-top:8px;transition:opacity .15s,transform .15s}
+.nwc-bar .menu.closed{opacity:0;transform:translateX(-50%) translateY(-4px);pointer-events:none}
+.nwc-bar .menu-inner{width:max-content;min-width:16rem;border-radius:12px;border:1px solid rgba(255,255,255,.1);padding:6px;box-shadow:0 25px 50px -12px rgba(0,0,0,.6)}
+.nwc-bar .opt{display:flex;align-items:center;gap:10px;white-space:nowrap;border-radius:8px;padding:10px 12px;font-size:13.5px;transition:background-color .15s}
+.nwc-bar .opt:hover{background:rgba(255,255,255,.06)}
+.nwc-bar .opt.active{background:rgba(255,255,255,.1)}
+.nwc-bar .opt .tick{width:14px;flex:0 0 auto}
+.nwc-bar .opt .lbl{font-weight:600;color:#fff}
+.nwc-bar .opt .sep{color:rgba(255,255,255,.55)}
+.nwc-bar .opt .desc{color:rgba(255,255,255,.75)}
+.nwc-bar .comment{pointer-events:auto;z-index:10;display:flex;align-items:center;gap:8px;border:0;font-size:13.5px;font-weight:600;cursor:pointer;color:#06222a;transition:margin .3s,filter .15s}
+.nwc-bar .comment:hover{filter:brightness(1.1)}
+@media(prefers-reduced-motion:reduce){.nwc-bar .bg,.nwc-bar .pill,.nwc-bar .logo,.nwc-bar .proto,.nwc-bar .comment,.nwc-bar .menu{transition:none}}
+`;
+
 function Caret({ open }: { open: boolean }) {
   return (
-    <svg width="9" height="6" viewBox="0 0 10 6" className={`ml-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ opacity: 0.55 }}>
+    <svg className={`caret ${open ? "open" : ""}`} width="9" height="6" viewBox="0 0 10 6">
       <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
     </svg>
   );
@@ -48,25 +82,42 @@ export default function ReviewBar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const tabClass = (active: boolean) =>
-    `relative flex items-center rounded-lg px-3.5 py-2 text-[13.5px] font-medium transition-colors duration-150 ${active ? "bg-white/10 text-white" : "text-white/65 hover:bg-white/10 hover:text-white"}`;
+  const logoStyle: React.CSSProperties = scrolled
+    ? { position: "static", gap: 0, marginLeft: 4, marginRight: 6 }
+    : { position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", gap: 12 };
+
+  const commentStyle: React.CSSProperties = {
+    background: ACCENT,
+    boxShadow: commentsOn
+      ? "0 0 0 2px rgba(255,255,255,0.5)"
+      : scrolled
+        ? "0 8px 30px -8px rgba(0,0,0,0.6)"
+        : undefined,
+    ...(scrolled
+      ? { position: "static", marginLeft: 16, height: 48, borderRadius: 999, border: "1px solid rgba(255,255,255,0.1)", padding: "0 16px" }
+      : { position: "absolute", right: 20, padding: "6px 16px", borderRadius: 999 }),
+  };
 
   return (
-    <div ref={barRef} data-nwc-ui className="pointer-events-none sticky top-0 z-50">
-      <div className="relative">
-        <div className="absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none" style={{ background: BAR_BG, opacity: scrolled ? 0 : 1, pointerEvents: scrolled ? "none" : "auto", boxShadow: scrolled ? undefined : "0 1px 0 rgba(255,255,255,0.07), 0 10px 30px -18px rgba(0,0,0,0.7)" }} />
+    <div ref={barRef} data-nwc-ui className="nwc-bar">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="inner">
+        <div
+          className="bg"
+          style={{ background: BAR_BG, opacity: scrolled ? 0 : 1, pointerEvents: scrolled ? "none" : "auto", boxShadow: scrolled ? undefined : "0 1px 0 rgba(255,255,255,0.07), 0 10px 30px -18px rgba(0,0,0,0.7)" }}
+        />
 
-        <div className="relative mx-auto flex min-h-14 max-w-7xl items-center justify-center px-5">
-          {/* Single logo that slides inward as the bar collapses (mirrors the Comment button on the right). */}
-          <Link href="/" aria-label="Back to start" className={`pointer-events-auto z-10 flex items-center transition-[margin] duration-300 motion-reduce:transition-none ${scrolled ? "static mr-4 gap-0" : "absolute left-5 gap-3"}`}>
-            <img src={config.brand.logo} alt={config.brand.name} className="h-5 w-auto" />
-            <span className={`overflow-hidden whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60 transition-all duration-300 motion-reduce:transition-none ${scrolled ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"}`}>Prototype</span>
-          </Link>
-
+        <div className="row">
           <nav
+            className="pill"
             style={{ width: "100%", maxWidth: scrolled ? 540 : 1280, background: scrolled ? "rgba(13,13,15,0.6)" : "transparent", borderColor: scrolled ? "rgba(255,255,255,0.1)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : undefined, WebkitBackdropFilter: scrolled ? "blur(10px)" : undefined, boxShadow: scrolled ? "0 8px 30px -8px rgba(0,0,0,0.6)" : undefined, borderRadius: scrolled ? 999 : 0 }}
-            className="pointer-events-auto flex items-center justify-center gap-0.5 border px-2 py-1.5 transition-[max-width,background-color,border-color,border-radius] duration-300 ease-out motion-reduce:transition-none"
           >
+            {/* Logo: corner when expanded, inside the pill (on glass) when collapsed. */}
+            <Link href="/" aria-label="Back to start" className="logo" style={logoStyle}>
+              <img src={config.brand.logo} alt={config.brand.name} />
+              <span className="proto" style={{ maxWidth: scrolled ? 0 : 140, opacity: scrolled ? 0 : 1, marginLeft: scrolled ? 0 : undefined }}>Prototype</span>
+            </Link>
+
             {config.pages.map((page) => {
               const isActive = activePage?.key === page.key;
               const multi = page.options.length > 1;
@@ -74,23 +125,23 @@ export default function ReviewBar() {
               const open = openTab === page.key;
 
               if (!multi) {
-                return <Link key={page.key} href={directHref} className={tabClass(isActive)}>{page.label}</Link>;
+                return <Link key={page.key} href={directHref} className={`tab ${isActive ? "active" : ""}`}>{page.label}</Link>;
               }
 
               return (
-                <div key={page.key} className="relative" onMouseEnter={() => openNow(page.key)} onMouseLeave={closeSoon}>
-                  <Link href={directHref} className={tabClass(isActive)}>{page.label}<Caret open={open} /></Link>
-                  <div className={`absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2 transition duration-150 ${open ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
-                    <div className="w-max min-w-[16rem] rounded-xl border border-white/10 p-1.5 shadow-2xl" style={{ background: DROP_BG }}>
+                <div key={page.key} style={{ position: "relative" }} onMouseEnter={() => openNow(page.key)} onMouseLeave={closeSoon}>
+                  <Link href={directHref} className={`tab ${isActive ? "active" : ""}`}>{page.label}<Caret open={open} /></Link>
+                  <div className={`menu ${open ? "" : "closed"}`}>
+                    <div className="menu-inner" style={{ background: DROP_BG }}>
                       {page.options.map((opt) => {
                         const href = `${page.basePath}/${opt.slug}`;
                         const optActive = pathname === href;
                         return (
-                          <Link key={opt.slug} href={href} onClick={() => setOpenTab(null)} className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-[13.5px] transition-colors ${optActive ? "bg-white/10" : "hover:bg-white/[0.06]"}`}>
-                            <span className="w-3.5 shrink-0" style={{ color: ACCENT }}>{optActive ? "✓" : ""}</span>
-                            <span className="font-semibold text-white">{opt.label}</span>
-                            {opt.descriptor && <span className="text-white/55">·</span>}
-                            {opt.descriptor && <span className="text-white/75">{opt.descriptor}</span>}
+                          <Link key={opt.slug} href={href} onClick={() => setOpenTab(null)} className={`opt ${optActive ? "active" : ""}`}>
+                            <span className="tick" style={{ color: ACCENT }}>{optActive ? "✓" : ""}</span>
+                            <span className="lbl">{opt.label}</span>
+                            {opt.descriptor && <span className="sep">·</span>}
+                            {opt.descriptor && <span className="desc">{opt.descriptor}</span>}
                           </Link>
                         );
                       })}
@@ -101,11 +152,7 @@ export default function ReviewBar() {
             })}
           </nav>
 
-          <button
-            onClick={toggleComments}
-            style={{ background: ACCENT, color: "#06222a" }}
-            className={`pointer-events-auto z-10 flex items-center gap-2 rounded-full px-4 text-[13.5px] font-semibold transition-[margin] duration-300 motion-reduce:transition-none ${scrolled ? "static ml-4 h-12 border border-white/10 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]" : "absolute right-5 py-1.5"} ${commentsOn ? "ring-2 ring-white/50" : "hover:brightness-110"}`}
-          >
+          <button onClick={toggleComments} className="comment" style={commentStyle}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.6-.8L3 21l1.9-5.4A8.5 8.5 0 1 1 21 11.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
             Comment
           </button>
