@@ -1,0 +1,12 @@
+{
+  "name": "@nwc/review-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Now We Collide review kit: a draft slate, a client review nav bar, and an in-page commenting layer backed by Supabase. Drop onto any Next.js (App Router) prototype to collect client feedback.",
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "license": "UNLICENSED"
+}
