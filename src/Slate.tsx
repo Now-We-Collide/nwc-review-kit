@@ -21,11 +21,11 @@ const CSS = `
 .nwc-slate .wrap{position:relative;margin:0 auto;max-width:64rem;display:flex;min-height:calc(100vh - 56px);flex-direction:column;justify-content:center;padding:96px 24px}
 .nwc-slate .logo{height:112px;width:auto;display:block}
 .nwc-slate .logo-wrap{align-self:flex-start;margin-bottom:56px}
-.nwc-slate .dash{margin-top:12px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:rgba(255,255,255,.45)}
+.nwc-slate .dash{margin-top:16px;font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.6)}
 .nwc-slate .grid{display:grid;gap:56px;align-items:center}
 @media(min-width:1024px){.nwc-slate .grid{grid-template-columns:1.05fr .95fr}}
 .nwc-slate .left{max-width:28rem}
-.nwc-slate .project{font-family:ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.4)}
+.nwc-slate .project{font-family:ui-monospace,monospace;font-size:25px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.62)}
 .nwc-slate h1{margin:6px 0 0;font-size:clamp(34px,5vw,48px);font-weight:800;line-height:1.05;letter-spacing:-.02em}
 .nwc-slate .breakout{margin-top:20px;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);padding:8px 16px;font-size:12.5px;color:rgba(255,255,255,.6)}
 .nwc-slate .breakout .sep{color:rgba(255,255,255,.2)}

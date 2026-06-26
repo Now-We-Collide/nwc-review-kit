@@ -57,19 +57,16 @@ export default function ReviewBar() {
         <div className="absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none" style={{ background: BAR_BG, opacity: scrolled ? 0 : 1, pointerEvents: scrolled ? "none" : "auto", boxShadow: scrolled ? undefined : "0 1px 0 rgba(255,255,255,0.07), 0 10px 30px -18px rgba(0,0,0,0.7)" }} />
 
         <div className="relative mx-auto flex min-h-14 max-w-7xl items-center justify-center px-5">
-          <Link href="/" className={`absolute left-5 flex items-center gap-3 transition-all duration-300 motion-reduce:transition-none ${scrolled ? "pointer-events-none -translate-x-2 opacity-0" : "pointer-events-auto opacity-100"}`}>
+          {/* Single logo that slides inward as the bar collapses (mirrors the Comment button on the right). */}
+          <Link href="/" aria-label="Back to start" className={`pointer-events-auto z-10 flex items-center transition-[margin] duration-300 motion-reduce:transition-none ${scrolled ? "static mr-4 gap-0" : "absolute left-5 gap-3"}`}>
             <img src={config.brand.logo} alt={config.brand.name} className="h-5 w-auto" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">Prototype</span>
+            <span className={`overflow-hidden whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60 transition-all duration-300 motion-reduce:transition-none ${scrolled ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"}`}>Prototype</span>
           </Link>
 
           <nav
             style={{ width: "100%", maxWidth: scrolled ? 540 : 1280, background: scrolled ? "rgba(13,13,15,0.6)" : "transparent", borderColor: scrolled ? "rgba(255,255,255,0.1)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : undefined, WebkitBackdropFilter: scrolled ? "blur(10px)" : undefined, boxShadow: scrolled ? "0 8px 30px -8px rgba(0,0,0,0.6)" : undefined, borderRadius: scrolled ? 999 : 0 }}
             className="pointer-events-auto flex items-center justify-center gap-0.5 border px-2 py-1.5 transition-[max-width,background-color,border-color,border-radius] duration-300 ease-out motion-reduce:transition-none"
           >
-            <Link href="/" aria-label="Back to start" className={`inline-flex items-center overflow-hidden transition-all duration-300 motion-reduce:transition-none ${scrolled ? "mr-1.5 ml-1 max-w-[40px] opacity-100 hover:opacity-80" : "pointer-events-none max-w-0 opacity-0"}`}>
-              <img src={config.brand.logo} alt="" className="h-4 w-auto" />
-            </Link>
-
             {config.pages.map((page) => {
               const isActive = activePage?.key === page.key;
               const multi = page.options.length > 1;
