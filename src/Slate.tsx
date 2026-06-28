@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useReviewKit } from "./FeedbackProvider";
 import type { Tone } from "./config";
+import { NWC_LOGO } from "./logo";
 
 /*
   The "clapperboard" slate. Self-styled via an injected <style> block
@@ -56,6 +57,7 @@ export default function Slate() {
   const { config } = useReviewKit();
   const { brand, slate, pages } = config;
   const ACCENT = brand.accent;
+  const logo = brand.logo || NWC_LOGO;
 
   return (
     <main className="nwc-slate">
@@ -69,7 +71,7 @@ export default function Slate() {
 
       <div className="wrap">
         <div className="logo-wrap">
-          <img className="logo" src={brand.logo} alt={brand.name} />
+          <img className="logo" src={logo} alt={brand.name} />
           <div className="dash">{slate.dashboardLabel}</div>
         </div>
 

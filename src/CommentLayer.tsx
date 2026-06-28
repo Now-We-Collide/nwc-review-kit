@@ -167,7 +167,7 @@ export default function CommentLayer() {
         if (!c) return null;
         const p = resolvePos(c.anchor);
         return (
-          <div data-nwc-pop style={{ position: "absolute", left: p.x, top: p.y + 10, transform: "translateX(-50%)", width: 260, background: "#fff", borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,.25)", zIndex: Z + 2, overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
+          <div data-nwc-pop style={{ position: "absolute", left: p.x, top: p.y + 10, transform: "translateX(-50%)", width: "min(260px, calc(100vw - 24px))", background: "#fff", borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,.25)", zIndex: Z + 2, overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
             <button onClick={() => setOpenId(null)} aria-label="Close" style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", border: 0, background: "#f0f1f4", color: "#5b5d6e", fontSize: 14, lineHeight: "22px", cursor: "pointer", padding: 0 }}>×</button>
             <div style={{ padding: "12px 34px 12px 14px" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1d24" }}>{c.author}</div>
@@ -182,7 +182,7 @@ export default function CommentLayer() {
       })()}
 
       {draft && (
-        <div style={{ position: "absolute", left: draft.x, top: draft.y + 10, transform: "translateX(-50%)", width: 280, background: "#fff", borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,.3)", zIndex: Z + 3, padding: 14, fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ position: "absolute", left: draft.x, top: draft.y + 10, transform: "translateX(-50%)", width: "min(280px, calc(100vw - 24px))", background: "#fff", borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,.3)", zIndex: Z + 3, padding: 14, fontFamily: "system-ui, sans-serif" }}>
           <input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!name.trim()} placeholder="Your name" style={{ width: "100%", marginBottom: 8, padding: "8px 10px", border: name.trim() ? "1px solid #d8dbe4" : `1px solid ${ACCENT}`, borderRadius: 8, fontSize: 13, boxSizing: "border-box" }} />
           <textarea value={bodyText} onChange={(e) => setBodyText(e.target.value)} autoFocus={!!name.trim()} placeholder="Leave a comment…" rows={3} style={{ width: "100%", padding: "8px 10px", border: "1px solid #d8dbe4", borderRadius: 8, fontSize: 13, resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }} />
           {!name.trim() && <div style={{ fontSize: 11, color: ACCENT_TEXT, marginTop: 6 }}>Add your name to enable Comment.</div>}
@@ -193,7 +193,7 @@ export default function CommentLayer() {
         </div>
       )}
 
-      <div style={{ position: "fixed", right: 16, bottom: 16, width: 300, maxHeight: "60vh", display: "flex", flexDirection: "column", background: PANEL_BG, color: "#e7e9ee", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,.45)", zIndex: Z + 4, overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ position: "fixed", right: 16, bottom: 16, width: "min(300px, calc(100vw - 32px))", maxHeight: "60vh", display: "flex", flexDirection: "column", background: PANEL_BG, color: "#e7e9ee", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,.45)", zIndex: Z + 4, overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
         <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.1)", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: ACCENT }} />
           <strong style={{ fontSize: 13 }}>{config.brand.name} Feedback</strong>

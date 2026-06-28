@@ -30,7 +30,7 @@ export type ReviewConfig = {
   supabaseAnonKey: string; // publishable/anon key (safe to ship; access via RLS)
   brand: {
     name: string;
-    logo: string; // path under /public, e.g. "/nwc-logo-white.png"
+    logo?: string; // OPTIONAL. A URL/path to your own logo. If omitted, the kit's bundled NWC logo is used. No /public asset needed.
     accent: string; // hex, used for the comment button + pins + slate
   };
   slate: {
