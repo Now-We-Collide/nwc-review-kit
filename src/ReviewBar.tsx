@@ -116,10 +116,22 @@ export default function ReviewBar() {
   useEffect(() => {
     const el = barRef.current;
     if (el) document.documentElement.style.setProperty("--rev-h", `${el.offsetHeight}px`);
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    // Only collapse when the main window can actually scroll. On pages that
+    // aren't taller than the viewport (e.g. a mockup embedded in an iframe,
+    // where scrolling happens inside the frame), stay expanded so the logo
+    // and tabs never flicker or vanish.
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const canCollapse = doc.scrollHeight > window.innerHeight + 80;
+      setScrolled(canCollapse && window.scrollY > 60);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   const logoStyle: React.CSSProperties = scrolled
