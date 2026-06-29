@@ -152,7 +152,7 @@ export default function ReviewBar() {
           <div className="row">
             <nav
               className="pill"
-              style={{ width: "100%", maxWidth: scrolled ? 540 : 1280, background: scrolled ? "rgba(13,13,15,0.6)" : "transparent", borderColor: scrolled ? "rgba(255,255,255,0.1)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : undefined, WebkitBackdropFilter: scrolled ? "blur(10px)" : undefined, boxShadow: scrolled ? "0 8px 30px -8px rgba(0,0,0,0.6)" : undefined, borderRadius: scrolled ? 999 : 0 }}
+              style={{ width: scrolled ? "max-content" : "100%", maxWidth: scrolled ? "calc(100vw - 40px)" : 1280, background: scrolled ? "rgba(13,13,15,0.6)" : "transparent", borderColor: scrolled ? "rgba(255,255,255,0.1)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : undefined, WebkitBackdropFilter: scrolled ? "blur(10px)" : undefined, boxShadow: scrolled ? "0 8px 30px -8px rgba(0,0,0,0.6)" : undefined, borderRadius: scrolled ? 999 : 0 }}
             >
               <Link href="/" aria-label="Back to start" className="logo" style={logoStyle}>
                 <img src={logo} alt={config.brand.name} />
