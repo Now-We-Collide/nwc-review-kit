@@ -83,6 +83,10 @@ Your real page designs live at the routes named in `pages` (e.g. `/home/1`). The
 
 Include the kit only in preview/staging builds. To ship a clean production site, omit `<ReviewKitProvider>`/`<ReviewBar>` and the slate route (e.g. behind an env flag).
 
+## Troubleshooting
+
+**Logo shows as a broken image.** `brand.logo` is optional; omit it to use the bundled NWC logo. If you previously pointed it at a path like `/nwc-logo-white.png` that isn't actually served, you'll get the browser's broken-image glyph. Remove the `logo` line from your config, then clear the build cache and restart, since a stale build can keep serving the old reference: `rm -rf .next && npm run dev`.
+
 ## Reviewing comments with Claude
 
 See `CLAUDE_FEEDBACK_LOOP.md` for the prompt to let Claude read and resolve the comments.

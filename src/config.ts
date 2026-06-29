@@ -50,7 +50,10 @@ export const reviewConfig: ReviewConfig = {
   supabaseAnonKey: "sb_publishable_ysrEfTmjafve6prmuYIi3A_IfmkOgsU",
   brand: {
     name: "Now We Collide",
-    logo: "/nwc-logo-white.png",
+    // logo is OPTIONAL. Omit it (as below) to use the kit's bundled NWC logo —
+    // no /public asset required. Only set it to a real, served URL/path if you
+    // want to override the bundled logo (a non-existent path renders broken).
+    // logo: "/your-logo.png",
     accent: "#4ae0f9",
   },
   slate: {

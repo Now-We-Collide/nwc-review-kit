@@ -37,7 +37,7 @@ const CSS = `
 .nwc-bar .logo{pointer-events:auto;z-index:10;display:flex;align-items:center;transition:margin .3s}
 .nwc-bar .logo img{height:20px;width:auto;display:block}
 .nwc-bar .proto{overflow:hidden;white-space:nowrap;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:rgba(255,255,255,.6);transition:max-width .3s,opacity .3s}
-.nwc-bar .tab{position:relative;display:flex;align-items:center;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.65);transition:background-color .15s,color .15s;cursor:pointer}
+.nwc-bar .tab{position:relative;display:flex;align-items:center;white-space:nowrap;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.65);transition:background-color .15s,color .15s;cursor:pointer}
 .nwc-bar .tab:hover{background:rgba(255,255,255,.1);color:#fff}
 .nwc-bar .tab.active{background:rgba(255,255,255,.1);color:#fff}
 .nwc-bar .caret{margin-left:2px;opacity:.55;transition:transform .2s}
