@@ -25,6 +25,9 @@ const CSS = `
 .nwc-slate .dash{margin-top:16px;font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.6)}
 .nwc-slate .grid{display:grid;gap:56px;align-items:center}
 @media(min-width:1024px){.nwc-slate .grid{grid-template-columns:1.05fr .95fr}}
+/* side rail is permanently open on desktop, so drop the slate's duplicate Pages
+   panel there; keep it on mobile, where the rail is a bottom bar, not open */
+@media(min-width:821px){.nwc-slate.side .panel{display:none}.nwc-slate.side .grid{grid-template-columns:1fr}}
 .nwc-slate .left{max-width:28rem}
 .nwc-slate .project{font-family:ui-monospace,monospace;font-size:25px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.62)}
 .nwc-slate h1{margin:6px 0 0;font-size:clamp(34px,5vw,48px);font-weight:800;line-height:1.05;letter-spacing:-.02em}
@@ -67,7 +70,7 @@ export default function Slate() {
   const position = config.bar?.position ?? "top";
 
   return (
-    <main className="nwc-slate">
+    <main className={`nwc-slate ${position === "side" ? "side" : ""}`}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="vignette" />
 
@@ -116,8 +119,7 @@ export default function Slate() {
                     <span className="row-label">{page.label}</span>
                     <span style={{ color: ACCENT }}>↗</span>
                   </div>
-                  {/* the side rail already shows per-page status, so omit it here to avoid duplication */}
-                  {position !== "side" && (page.status?.design || page.status?.copy) && (
+                  {(page.status?.design || page.status?.copy) && (
                     <div className="chips">
                       {page.status?.design && (
                         <span className="chip"><span className="dot" style={{ background: toneColor[page.status.design.tone] }} />{page.status.design.label}</span>
