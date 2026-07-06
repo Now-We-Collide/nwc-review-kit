@@ -7,8 +7,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const nwc = readFileSync(join(root, "assets/nwc-logo-white.webp")).toString("base64");
-const bird = readFileSync(join(root, "assets/thebird-logo-white.png")).toString("base64");
+const b64 = (p) => readFileSync(join(root, p)).toString("base64");
+const nwc = b64("assets/nwc-logo-white.webp");
+const bird = b64("assets/thebird-logo-white.png");       // wordmark (with text)
+const birdIcon = b64("assets/thebird-icon-white.png");   // icon only
 
 const out = `// Bundled brand logos, embedded so the kit never depends on a /public asset.
 // NWC (white) is the default for most projects; TheBird AI (white) is used on the
@@ -23,20 +25,31 @@ export const NWC_LOGO =
 export const THEBIRD_LOGO =
   "data:image/png;base64,${bird}";
 
-// Registry of bundled logos, keyed by the short name used in config.brand.logo.
+// Icon-only TheBird mark, for narrow spots (the side rail) where the wordmark squishes.
+export const THEBIRD_ICON =
+  "data:image/png;base64,${birdIcon}";
+
+// Full/wordmark logos, keyed by the short name used in config.brand.logo.
 export const LOGOS: Record<string, string> = {
   nwc: NWC_LOGO,
   thebird: THEBIRD_LOGO,
 };
 
+// Icon-only variants, used where a wordmark would get squished (the side rail).
+export const ICON_LOGOS: Record<string, string> = {
+  thebird: THEBIRD_ICON,
+};
+
 // Resolve config.brand.logo to an <img src>. A known key ("nwc" | "thebird")
 // uses the matching bundled logo; any other non-empty string is treated as a
-// URL/path; omitted falls back to the NWC logo.
-export function resolveLogo(logo?: string): string {
+// URL/path; omitted falls back to the NWC logo. Pass variant "icon" to prefer an
+// icon-only version where one exists (falls back to the full logo otherwise).
+export function resolveLogo(logo?: string, variant: "full" | "icon" = "full"): string {
   if (!logo) return NWC_LOGO;
+  if (variant === "icon" && ICON_LOGOS[logo]) return ICON_LOGOS[logo];
   return LOGOS[logo] ?? logo;
 }
 `;
 
 writeFileSync(join(root, "src/logo.ts"), out);
-console.log(`wrote src/logo.ts  (nwc: ${nwc.length} b64 chars, thebird: ${bird.length} b64 chars)`);
+console.log(`wrote src/logo.ts  (nwc ${nwc.length}, thebird ${bird.length}, thebird-icon ${birdIcon.length} b64 chars)`);

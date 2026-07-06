@@ -332,7 +332,7 @@ function TopBar() {
 function SideRail() {
   const { config, enabled: commentsOn, toggle: toggleComments } = useReviewKit();
   const ACCENT = config.brand.accent;
-  const logo = resolveLogo(config.brand.logo);
+  const logo = resolveLogo(config.brand.logo, "icon"); // icon-only: the wordmark squishes in the narrow rail
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
