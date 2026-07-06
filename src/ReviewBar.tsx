@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useReviewKit } from "./FeedbackProvider";
 import { resolveLogo } from "./logo";
@@ -329,7 +329,6 @@ function SideRail() {
   const ACCENT = config.brand.accent;
   const logo = resolveLogo(config.brand.logo, "icon"); // icon-only: the wordmark squishes in the narrow rail
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [lockH, setLockH] = useState<number | null>(null);
@@ -359,10 +358,6 @@ function SideRail() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [isOpen]);
-
-  // Single-option pages navigate on click. Multi-option pages are just headers;
-  // their options are always visible while the rail is open (no open/close).
-  const goToPage = (page: ReviewPage) => router.push(page.href ?? `${page.basePath}/${page.options[0].slug}`);
 
   // Peek open once on mount (skipped on the slate, where it's already pinned,
   // and under reduced-motion).
@@ -443,7 +438,7 @@ function SideRail() {
                   {multi ? (
                     <div className="r-item">{rowInner}</div>
                   ) : (
-                    <button className="r-item" style={{ background: "transparent", border: 0, width: "100%", cursor: "pointer" }} onClick={() => goToPage(page)}>{rowInner}</button>
+                    <Link href={directHref} className="r-item">{rowInner}</Link>
                   )}
 
                   {multi && (
