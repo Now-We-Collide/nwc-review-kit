@@ -57,7 +57,7 @@ const CSS = `
 .nwc-slate .callouts-side{display:none}
 @media(min-width:821px){
 .nwc-slate .callouts-side{display:block;position:fixed;inset:0;z-index:10;pointer-events:none}
-.nwc-slate .callout.c-rail{position:fixed;right:88px;top:50%;transform:translateY(-50%);width:250px}
+.nwc-slate .callout.c-rail{position:fixed;right:478px;top:50%;transform:translateY(-50%);width:250px}
 .nwc-slate .callout.c-rail .arrow{top:50%;left:auto;right:-6px;transform:translateY(-50%) rotate(45deg)}}
 .nwc-slate .disclaimer{position:absolute;left:0;right:0;bottom:20px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.25)}
 `;
@@ -76,7 +76,7 @@ export default function Slate() {
 
       {position === "side" ? (
         <div className="callouts-side">
-          <div className="callout c-rail"><span className="arrow" />Open the panel on the right to move between pages, compare design options, and leave feedback with Comment.</div>
+          <div className="callout c-rail"><span className="arrow" />Use the panel on the right to move between pages, compare design options, and leave feedback with Comment.</div>
         </div>
       ) : (
         <div className="callouts">
