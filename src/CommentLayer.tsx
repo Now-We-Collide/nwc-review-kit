@@ -345,6 +345,20 @@ export default function CommentLayer() {
     return () => { window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); setHl(null); };
   }, [openId, comments]);
 
+  // While writing a new comment, keep the clicked element highlighted for context.
+  useEffect(() => {
+    if (!draft) return;
+    const place = () => {
+      const el = draft.anchor.sel ? queryTarget(draft.anchor.sel) : null;
+      if (el) { const r = el.getBoundingClientRect(); setHl({ x: r.left, y: r.top, w: r.width, h: r.height }); }
+      else { const p = resolvePos(draft.anchor); setHl({ x: p.x - window.scrollX - 14, y: p.y - window.scrollY - 14, w: 28, h: 28 }); }
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => { window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); setHl(null); };
+  }, [draft]);
+
   const saveDraft = async () => {
     if (!draft || !draftText.trim() || !clientId) return;
     try {
