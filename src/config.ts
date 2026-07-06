@@ -24,14 +24,29 @@ export type ReviewPage = {
   status?: { design?: Status; copy?: Status }; // shown on the slate
 };
 
+// Where the review nav sits. "top" is the classic bar (good early on, before the
+// client's own site has a nav). "side" is a right-edge rail that collapses to a
+// slim strip and expands on hover/click — use it once the site has its own nav,
+// so there aren't two competing top bars.
+export type BarPosition = "top" | "side";
+
 export type ReviewConfig = {
   projectId: string; // unique per website; namespaces comments in the shared DB
   supabaseUrl: string;
   supabaseAnonKey: string; // publishable/anon key (safe to ship; access via RLS)
   brand: {
     name: string;
-    logo?: string; // OPTIONAL. A URL/path to your own logo. If omitted, the kit's bundled NWC logo is used. No /public asset needed.
+    // OPTIONAL. Selects the logo shown in the bar.
+    //   "nwc"      -> bundled NWC logo (default, may also be omitted)
+    //   "thebird"  -> bundled TheBird AI logo
+    //   any other  -> treated as a URL/path to your own served logo
+    logo?: "nwc" | "thebird" | (string & {});
     accent: string; // hex, used for the comment button + pins + slate
+  };
+  // OPTIONAL. Controls the review nav. Omit for the default top bar.
+  bar?: {
+    position?: BarPosition; // "top" (default) | "side"
+    autoHide?: boolean; // top bar only: hide on scroll down, reveal on scroll up / mouse-to-top. Default true.
   };
   slate: {
     dashboardLabel: string; // e.g. "Website Review Dashboard"

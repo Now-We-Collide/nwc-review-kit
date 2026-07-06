@@ -3,3 +3,9 @@ node_modules
 .next
 dist
 *.log
+next-env.d.ts
+*.tsbuildinfo
+
+# Local-only preview app and editor/tooling config (not part of the package)
+example/
+.claude/

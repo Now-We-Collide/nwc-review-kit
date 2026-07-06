@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useReviewKit } from "./FeedbackProvider";
 import type { Tone } from "./config";
-import { NWC_LOGO } from "./logo";
+import { resolveLogo } from "./logo";
 
 /*
   The "clapperboard" slate. Self-styled via an injected <style> block
@@ -50,6 +50,12 @@ const CSS = `
 @media(min-width:1024px){.nwc-slate .callouts{display:block;position:absolute;left:0;right:0;top:12px;z-index:10;margin:0 auto;max-width:80rem;padding:0 20px;pointer-events:none;height:0}
 .nwc-slate .callout.c-center{left:50%;transform:translateX(-50%)}
 .nwc-slate .callout.c-right{right:20px}}
+/* side-rail placement: point at the rail on the right edge */
+.nwc-slate .callouts-side{display:none}
+@media(min-width:821px){
+.nwc-slate .callouts-side{display:block;position:fixed;inset:0;z-index:10;pointer-events:none}
+.nwc-slate .callout.c-rail{position:fixed;right:88px;top:50%;transform:translateY(-50%);width:250px}
+.nwc-slate .callout.c-rail .arrow{top:50%;left:auto;right:-6px;transform:translateY(-50%) rotate(45deg)}}
 .nwc-slate .disclaimer{position:absolute;left:0;right:0;bottom:20px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.25)}
 `;
 
@@ -57,17 +63,24 @@ export default function Slate() {
   const { config } = useReviewKit();
   const { brand, slate, pages } = config;
   const ACCENT = brand.accent;
-  const logo = brand.logo || NWC_LOGO;
+  const logo = resolveLogo(brand.logo);
+  const position = config.bar?.position ?? "top";
 
   return (
     <main className="nwc-slate">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="vignette" />
 
-      <div className="callouts">
-        <div className="callout c-center"><span className="arrow" />Use these tabs to move between pages and compare design options.</div>
-        <div className="callout c-right"><span className="arrow" />Leave feedback with the Comment button.</div>
-      </div>
+      {position === "side" ? (
+        <div className="callouts-side">
+          <div className="callout c-rail"><span className="arrow" />Open the panel on the right to move between pages, compare design options, and leave feedback with Comment.</div>
+        </div>
+      ) : (
+        <div className="callouts">
+          <div className="callout c-center"><span className="arrow" />Use these tabs to move between pages and compare design options.</div>
+          <div className="callout c-right"><span className="arrow" />Leave feedback with the Comment button.</div>
+        </div>
+      )}
 
       <div className="wrap">
         <div className="logo-wrap">

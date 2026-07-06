@@ -7,10 +7,10 @@ Read THIS file to install the kit. You do not need to read the component source.
 A drop-in review layer for **Next.js (App Router) + React** prototypes. It adds three things:
 
 1. **Slate** — a dark intro/landing screen (render at `/`).
-2. **Review nav bar** — lets the client switch between pages and per-page design options. Collapses into a floating pill on desktop scroll; on mobile it's a bar with a slide-down menu. Fully responsive and self-styled.
-3. **Commenting layer** — click anywhere on the page to leave a pin + comment, stored in a shared Supabase database, namespaced per project.
+2. **Review nav** — lets the client switch between pages and per-page design options. Two placements via `bar.position`: `"top"` (default) is a full-width bar that collapses into a floating pill and auto-hides on scroll; `"side"` is a slim right-edge rail that expands on hover/click. On mobile both fall back to a compact bar with a slide-down menu. Fully responsive and self-styled.
+3. **Commenting layer** — click anywhere on the page to leave a pin + comment, stored in a shared Supabase database, namespaced per project. Supports threaded replies, in-place editing, an auto-growing input, and anonymous authorship (no name asked; the UI labels reviewers "Reviewer 1/2/…"). Each comment also captures rich context (the element and section it was placed on) for the feedback loop.
 
-The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and does NOT read the host app's CSS. The logo is **bundled** inside the kit, so there is no image file to supply.
+The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and does NOT read the host app's CSS. Two brand logos (NWC and TheBird AI) are **bundled**, selected via `brand.logo`, so there is usually no image file to supply.
 
 ## Install (exact steps)
 
@@ -32,7 +32,8 @@ The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and doe
      projectId: "erstan-website",
      supabaseUrl: "https://fqwvgmkexczmulglowyb.supabase.co",
      supabaseAnonKey: "sb_publishable_ysrEfTmjafve6prmuYIi3A_IfmkOgsU",
-     brand: { name: "Now We Collide", accent: "#4ae0f9" }, // no logo => bundled NWC logo
+     brand: { name: "Now We Collide", accent: "#4ae0f9" }, // logo?: "nwc" (default) | "thebird" | a URL
+     bar: { position: "top", autoHide: true }, // OPTIONAL. "top" (default) | "side"
      slate: { dashboardLabel: "Website Review Dashboard", title: "Erstan Website", client: "Erstan", version: "v0.1", status: "For review" },
      pages: [
        { key: "home", label: "Home", basePath: "/home",
@@ -74,18 +75,19 @@ The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and doe
 ## Limitations and rules (read these — they are the common mistakes)
 
 - **Do NOT embed your design pages in iframes**, and do not put page content inside an inner scroll container. Two features depend on the pages living in the same scrolling document:
-  - The desktop bar collapses on **window scroll**. Inside an iframe the outer window never scrolls, so it never collapses.
+  - The `"top"` bar collapses/auto-hides on **window scroll**. Inside an iframe the outer window never scrolls, so it never reacts.
   - Comment pins anchor to elements in the main document. They cannot reach into an iframe, so commenting silently breaks.
   Build each design as a normal Next.js route. If you must reuse a static HTML build, port it into a route, do not iframe it.
-- The bar only collapses once there is enough content to scroll past ~60px. The one-screen slate will not collapse — that is intended.
+- The `"top"` bar only collapses once there is enough content to scroll past ~60px. The one-screen slate will not collapse — that is intended. The `"side"` rail is unaffected by scroll.
 - Requires the **App Router**. `ReviewBar`, `Slate` and the commenting layer must be inside `<ReviewKitProvider>`.
 - Comments are shared across all sites in one database, separated by `projectId`. Use a distinct `projectId` per site or comments will mix.
 - It is a **review-only** layer. For a production/launch build, omit `<ReviewKitProvider>`/`<ReviewBar>` and the slate route (e.g. behind an env flag).
 
 ## Config reference
 
-`ReviewConfig`: `{ projectId, supabaseUrl, supabaseAnonKey, brand, slate, pages }`
-- `brand`: `{ name: string; logo?: string; accent: string }` — `logo` optional (bundled fallback); `accent` is a hex used for the comment button, pins and slate.
+`ReviewConfig`: `{ projectId, supabaseUrl, supabaseAnonKey, brand, bar?, slate, pages }`
+- `brand`: `{ name: string; logo?: "nwc" | "thebird" | string; accent: string }` — `logo` optional: a bundled key (`"nwc"` default, `"thebird"`) or a URL/path; `accent` is a hex used for the comment button, pins and slate.
+- `bar?`: `{ position?: "top" | "side"; autoHide?: boolean }` — `position` defaults to `"top"`; `autoHide` (top bar only, default `true`) hides it on scroll-down and reveals on scroll-up/pointer-to-top.
 - `slate`: `{ dashboardLabel, title, client, version, status }`.
 - `pages[]`: `{ key, label, basePath, href?, options, status? }`.
   - `options[]`: `{ slug, label, descriptor? }`. One option = a single page (no dropdown). Multiple = a switchable design comparison.

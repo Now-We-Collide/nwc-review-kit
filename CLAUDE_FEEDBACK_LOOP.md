@@ -14,7 +14,7 @@ Open this website's repo in Claude Code and paste the prompt below.
 >
 > 1. Read the Supabase connection from the review kit config in this repo (find `reviewConfig`): use `supabaseUrl`, `supabaseAnonKey`, and `projectId`.
 > 2. List the open comments: GET `{supabaseUrl}/rest/v1/comments?project_id=eq.{projectId}&status=eq.open&select=*&order=page_path.asc` with headers `apikey: {supabaseAnonKey}` and `Authorization: Bearer {supabaseAnonKey}`.
-> 3. Group them by `page_path`. For each comment show the author, the body, the device (`anchor.device`) and the anchored element (`anchor.sel`).
+> 3. Group them by `page_path`. For each comment show the author, the body, the device (`anchor.device`), and the placement context from `anchor.context`: what it was placed on (`context.target` — its `text`/`label`/`role`/`tag`/`href`), which part of the page (`context.section.heading` and `context.section.landmark`), and, when it was placed *beside* rather than on something, the closest element (`context.nearest` — its `text`, `direction`, and `distance` in px). Use this to pinpoint the exact element to change. Fall back to `anchor.sel` / `anchor.px`,`anchor.py` for older comments that have no `context`.
 > 4. Triage each into **small** (copy, spacing, colour, simple content I can do confidently) or **large** (layout, structure, or concept that needs my decision). Give a one-line recommendation for each. For large ones, give up to three options and recommend one.
 > 5. Stop and wait for my approval. Do not edit code yet.
 > 6. Once I approve, make the approved changes on a NEW branch (never main), commit with a clear message, and push it. Open a pull request into main (or print the GitHub compare URL). Print the branch name.

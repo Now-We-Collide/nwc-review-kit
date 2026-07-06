@@ -1,15 +1,19 @@
 -- NWC Review Kit — Supabase schema (run ONCE per shared database).
 -- Dashboard > SQL Editor > New query > paste > Run.
 -- One shared database serves every website; rows are namespaced by project_id.
+--
+-- Note: the kit needs NO extra columns for replies or anonymous authorship.
+-- The anonymous author id is stored in `author`, and reply/edit metadata rides
+-- inside the `anchor` JSON, so this base schema is all you ever need.
 
 create table if not exists public.comments (
   id          uuid primary key default gen_random_uuid(),
   project_id  text not null,
   page_path   text not null,
-  anchor      jsonb not null,
-  author      text not null,
+  anchor      jsonb not null,                  -- position + { parentId?, editedAt? }
+  author      text not null,                   -- anonymous per-browser id (grouped/labelled in the UI)
   body        text not null,
-  status      text not null default 'open',   -- 'open' | 'resolved' (soft delete)
+  status      text not null default 'open',    -- 'open' | 'resolved' (soft delete)
   created_at  timestamptz not null default now()
 );
 
