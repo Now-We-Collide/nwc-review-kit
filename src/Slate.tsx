@@ -116,7 +116,8 @@ export default function Slate() {
                     <span className="row-label">{page.label}</span>
                     <span style={{ color: ACCENT }}>↗</span>
                   </div>
-                  {(page.status?.design || page.status?.copy) && (
+                  {/* the side rail already shows per-page status, so omit it here to avoid duplication */}
+                  {position !== "side" && (page.status?.design || page.status?.copy) && (
                     <div className="chips">
                       {page.status?.design && (
                         <span className="chip"><span className="dot" style={{ background: toneColor[page.status.design.tone] }} />{page.status.design.label}</span>

@@ -97,41 +97,42 @@ const CSS = `
 .nwc-rail *{box-sizing:border-box}
 .nwc-rail a{text-decoration:none;color:inherit}
 @media(min-width:821px){.nwc-rail{display:flex}}
-.nwc-rail .panel{pointer-events:auto;position:relative;margin-right:12px;display:flex;flex-direction:column;max-height:calc(100vh - 24px);width:56px;overflow:hidden;background:rgba(13,13,15,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 50px -18px rgba(0,0,0,.75);transition:width .28s ease}
-.nwc-rail.open .panel{width:300px}
+.nwc-rail .panel{pointer-events:auto;position:relative;margin-right:12px;display:flex;flex-direction:column;max-height:70vh;width:56px;overflow:hidden;background:rgba(13,13,15,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 50px -18px rgba(0,0,0,.75);transition:width .28s ease}
+.nwc-rail.open .panel{width:450px}
 /* content is a fixed width so it lays out at the final size from the start; the
    panel just clips it while the width animates (no text reflow mid-animation) */
-.nwc-rail .r-inner{width:300px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.nwc-rail .r-inner{width:450px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 .nwc-rail .r-head{display:flex;align-items:center;gap:10px;padding:14px 12px;min-height:56px;border-radius:12px;cursor:pointer}
 .nwc-rail .r-head:hover .r-name{color:#fff}
 .nwc-rail .r-logo{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:32px}
 .nwc-rail .r-logo img{height:18px;width:auto;display:block}
 .nwc-rail .r-meta{display:flex;flex-direction:column;min-width:0;overflow:hidden;white-space:nowrap;opacity:0;transition:opacity .2s}
 .nwc-rail.open .r-meta{opacity:1}
-.nwc-rail .r-meta .r-name{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.92);transition:color .15s}
-.nwc-rail .r-meta .r-status{font-size:11px;color:rgba(255,255,255,.5)}
+.nwc-rail .r-meta .r-name{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.92);transition:color .15s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nwc-rail .r-meta .r-status{font-size:11px;color:rgba(255,255,255,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nwc-rail .r-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 8px 0}
 /* fills the scroll area so pages spread across any spare height (space-between);
    when content overflows, min-height:100% lets it grow and scroll from the top */
 .nwc-rail .r-groups{min-height:100%;display:flex;flex-direction:column;justify-content:space-between}
-.nwc-rail .r-item{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:10px;cursor:pointer;transition:background-color .15s}
-.nwc-rail .r-group:hover .r-item{background:rgba(255,255,255,.07)}
+.nwc-rail .r-item{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:10px;transition:background-color .15s}
+.nwc-rail a.r-item:hover{background:rgba(255,255,255,.07)}
 .nwc-rail .r-group.active .r-item{background:rgba(255,255,255,.08)}
 .nwc-rail .r-ic{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;font-weight:700}
 .nwc-rail .r-group.active .r-ic{background:rgba(255,255,255,.18)}
 .nwc-rail .r-body{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;white-space:nowrap;opacity:0;transition:opacity .2s}
 .nwc-rail.open .r-body{opacity:1}
-.nwc-rail .r-lbl{font-size:13.5px;font-weight:600;color:#fff}
-.nwc-rail .r-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.nwc-rail .r-chip{font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;line-height:1.6}
-.nwc-rail .r-caret{margin-left:auto;flex:0 0 auto;opacity:.5;transition:transform .2s}
-.nwc-rail .r-caret.open{transform:rotate(180deg)}
+.nwc-rail .r-lbl{font-size:13.5px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* per-page status as coloured dots (matches the slate), one line, truncates */
+.nwc-rail .r-status-row{display:flex;gap:14px;min-width:0;overflow:hidden;white-space:nowrap;margin-top:4px}
+.nwc-rail .r-stat{display:inline-flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nwc-rail .r-dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%}
 .nwc-rail .r-sub{overflow:hidden;max-height:0;transition:max-height .25s ease}
-.nwc-rail.open .r-sub.open{max-height:300px}
+.nwc-rail.open .r-sub{max-height:400px}
 .nwc-rail .r-opt{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 44px;border-radius:9px;font-size:12.5px;color:rgba(255,255,255,.75);cursor:pointer;transition:background-color .15s}
 .nwc-rail .r-opt:hover{background:rgba(255,255,255,.06)}
 .nwc-rail .r-opt.active{background:rgba(255,255,255,.08);color:#fff}
 .nwc-rail .r-opt .r-tick{width:12px;flex:0 0 auto;color:rgba(255,255,255,.9)}
+.nwc-rail .r-opt .r-opt-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nwc-rail .r-opt .r-desc{color:rgba(255,255,255,.45)}
 .nwc-rail .r-foot{flex:0 0 auto;padding:8px}
 /* collapsed: a compact 40px icon button; expanded: full-width with a label */
@@ -162,14 +163,8 @@ function CommentIcon() {
   );
 }
 
-// tone -> chip colours, matching the slate's good/warn/todo palette.
-// We keep these to plain status colours (green/amber/grey) and reserve the
-// brand accent almost entirely for the Comment button.
-const TONE_CHIP: Record<string, { bg: string; fg: string }> = {
-  good: { bg: "rgba(74,222,128,.15)", fg: "#86efac" },
-  warn: { bg: "rgba(251,191,36,.15)", fg: "#fcd34d" },
-  todo: { bg: "rgba(255,255,255,.1)", fg: "rgba(255,255,255,.7)" },
-};
+// tone -> status dot colour, matching the slate's good/warn/todo palette.
+const TONE_DOT: Record<string, string> = { good: "#4ade80", warn: "#fbbf24", todo: "#9aa0ad" };
 
 function useActivePage(config: ReviewConfig, pathname: string): ReviewPage | null {
   return (
@@ -337,10 +332,6 @@ function SideRail() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Which pages have their options expanded. Independent per page (several can
-  // be open at once) so switching pages doesn't animate one shut while another
-  // opens, which read as jitter.
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [lockH, setLockH] = useState<number | null>(null);
   const hovered = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -348,52 +339,45 @@ function SideRail() {
 
   const activePage = useActivePage(config, pathname);
 
+  // On the slate ("/") the rail is pinned permanently open; elsewhere it peeks,
+  // expands on hover, and collapses when you click away.
+  const forceOpen = pathname === "/";
+  const isOpen = open || forceOpen;
+
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Collapsing the rail resets which options are open — it's not a saved state,
-  // so re-opening the rail shows just the page names again.
-  useEffect(() => { if (!open) setExpanded(new Set()); }, [open]);
-
   // Lock the panel to its collapsed height so it doesn't jitter when it expands;
-  // expanded content then flexes/scrolls within that same height. Measure while
-  // collapsed and visible (the rail is display:none under 821px), and re-measure
-  // on resize so a 0-height measurement while hidden never sticks.
+  // expanded content flexes/scrolls within, capped at the panel's max-height.
+  // Measure while collapsed and visible (rail is display:none under 821px), and
+  // re-measure on resize so a 0-height measurement while hidden never sticks.
   useLayoutEffect(() => {
     const measure = () => {
       const el = panelRef.current;
-      if (el && !open) { const h = el.offsetHeight; if (h > 0) setLockH(h); }
+      if (el && !isOpen) { const h = el.offsetHeight; if (h > 0) setLockH(h); }
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [open]);
+  }, [isOpen]);
 
-  // Clicking a page name toggles its options open/closed and never navigates.
-  // Navigation happens only when an option is clicked. Single-option pages have
-  // no submenu, so they navigate directly.
-  const onRow = (page: ReviewPage) => {
-    if (page.options.length <= 1) { router.push(page.href ?? `${page.basePath}/${page.options[0].slug}`); return; }
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(page.key)) next.delete(page.key); else next.add(page.key);
-      return next;
-    });
-  };
+  // Single-option pages navigate on click. Multi-option pages are just headers;
+  // their options are always visible while the rail is open (no open/close).
+  const goToPage = (page: ReviewPage) => router.push(page.href ?? `${page.basePath}/${page.options[0].slug}`);
 
-  // Peek open once on mount so a first-time reviewer sees where the rail lives,
-  // then ease it closed (unless they're already hovering it). Skip under
-  // reduced-motion.
+  // Peek open once on mount (skipped on the slate, where it's already pinned,
+  // and under reduced-motion).
   useEffect(() => {
+    if (forceOpen) return;
     const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
     const t1 = setTimeout(() => setOpen(true), 350);
     const t2 = setTimeout(() => { if (!hovered.current) setOpen(false); }, 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, [forceOpen]);
 
-  // Clicking anywhere outside the rail collapses it back to the slim strip.
+  // Clicking outside collapses the rail (not on the slate, where it stays open).
   useEffect(() => {
-    if (!open) return;
+    if (!open || forceOpen) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Element | null;
       if (t && t.closest && t.closest(".nwc-rail")) return;
@@ -401,10 +385,10 @@ function SideRail() {
     };
     document.addEventListener("mousedown", onDown, true);
     return () => document.removeEventListener("mousedown", onDown, true);
-  }, [open]);
+  }, [open, forceOpen]);
 
   const enter = () => { hovered.current = true; if (closeTimer.current) clearTimeout(closeTimer.current); setOpen(true); };
-  const leave = () => { hovered.current = false; if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => { if (!hovered.current) setOpen(false); }, 180); };
+  const leave = () => { if (forceOpen) return; hovered.current = false; if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => { if (!hovered.current) setOpen(false); }, 180); };
 
   const version = config.slate?.version;
 
@@ -413,7 +397,7 @@ function SideRail() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       {/* ---------- desktop rail ---------- */}
-      <div className={`nwc-rail ${open ? "open" : ""}`}>
+      <div className={`nwc-rail ${isOpen ? "open" : ""}`}>
         <div ref={panelRef} className="panel" onMouseEnter={enter} onMouseLeave={leave} style={lockH ? { minHeight: lockH } : undefined}>
          <div className="r-inner">
           {/* whole header is the "back to start" target */}
@@ -432,39 +416,45 @@ function SideRail() {
             {config.pages.map((page) => {
               const isActive = activePage?.key === page.key;
               const multi = page.options.length > 1;
-              const subOpen = expanded.has(page.key);
+              const directHref = page.href ?? `${page.basePath}/${page.options[0].slug}`;
               const design = page.status?.design;
               const copy = page.status?.copy;
               const icon = page.label.slice(0, 1).toUpperCase();
 
+              const rowInner = (
+                <>
+                  <span className="r-ic">{icon}</span>
+                  <span className="r-body">
+                    <span className="r-lbl">{page.label}</span>
+                    {(design || copy) && (
+                      <span className="r-status-row">
+                        {design && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[design.tone] }} />{design.label}</span>}
+                        {copy && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[copy.tone] }} />{copy.label}</span>}
+                      </span>
+                    )}
+                  </span>
+                </>
+              );
+
               return (
-                // Clicking the row opens this page's options; clicking it again
-                // (once open) navigates to Option 1. Options navigate directly.
+                // Multi-option pages are headers (options always shown below);
+                // single-option pages are links that navigate on click.
                 <div key={page.key} className={`r-group ${isActive ? "active" : ""}`}>
-                  <div className="r-item" role="button" tabIndex={0} onClick={() => onRow(page)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRow(page); } }}>
-                    <span className="r-ic">{icon}</span>
-                    <span className="r-body">
-                      <span className="r-lbl">{page.label}</span>
-                      {(design || copy) && (
-                        <span className="r-chips">
-                          {design && <span className="r-chip" style={{ background: TONE_CHIP[design.tone].bg, color: TONE_CHIP[design.tone].fg }}>{design.label}</span>}
-                          {copy && <span className="r-chip" style={{ background: TONE_CHIP[copy.tone].bg, color: TONE_CHIP[copy.tone].fg }}>{copy.label}</span>}
-                        </span>
-                      )}
-                    </span>
-                    {multi && <span className={`r-caret ${subOpen ? "open" : ""}`}><Caret open={subOpen} /></span>}
-                  </div>
+                  {multi ? (
+                    <div className="r-item">{rowInner}</div>
+                  ) : (
+                    <button className="r-item" style={{ background: "transparent", border: 0, width: "100%", cursor: "pointer" }} onClick={() => goToPage(page)}>{rowInner}</button>
+                  )}
 
                   {multi && (
-                    <div className={`r-sub ${subOpen ? "open" : ""}`}>
+                    <div className="r-sub">
                       {page.options.map((opt) => {
                         const href = `${page.basePath}/${opt.slug}`;
                         const optActive = pathname === href;
                         return (
                           <Link key={opt.slug} href={href} className={`r-opt ${optActive ? "active" : ""}`}>
                             <span className="r-tick">{optActive ? "✓" : ""}</span>
-                            <span>{opt.label}</span>
-                            {opt.descriptor && <span className="r-desc">· {opt.descriptor}</span>}
+                            <span className="r-opt-t">{opt.label}{opt.descriptor && <span className="r-desc"> · {opt.descriptor}</span>}</span>
                           </Link>
                         );
                       })}
