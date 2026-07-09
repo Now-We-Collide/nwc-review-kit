@@ -403,16 +403,20 @@ export default function CommentLayer() {
   const topLevel = comments.filter((c) => !c.anchor?.parentId).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const repliesOf = (id: string) => comments.filter((c) => c.anchor?.parentId === id).sort((a, b) => a.created_at.localeCompare(b.created_at));
 
-  // Map distinct authors on this page to "Reviewer N" (own => "You").
+  // Anonymous reviewers get an auto id (uuid, or a "c_..." fallback); those are
+  // labelled "Reviewer N" / "You". A named author (e.g. a "NWC Riu" reply posted
+  // by the feedback loop) is shown verbatim so team replies read as the team.
+  const isAnonId = (a: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(a) || a.startsWith("c_");
   const idToNum = new Map<string, number>();
   let n = 0;
   for (const c of [...comments].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    if (c.author && !idToNum.has(c.author)) idToNum.set(c.author, ++n);
+    if (c.author && isAnonId(c.author) && !idToNum.has(c.author)) idToNum.set(c.author, ++n);
   }
   const labelFor = (c: Comment): string => {
-    if (c.author && c.author === clientId) return "You";
-    if (c.author && idToNum.has(c.author)) return `Reviewer ${idToNum.get(c.author)}`;
-    return "Reviewer";
+    if (!c.author) return "Reviewer";
+    if (c.author === clientId) return "You";
+    if (isAnonId(c.author)) return `Reviewer ${idToNum.get(c.author) ?? "?"}`;
+    return c.author; // named author (team reply) shows as-is
   };
 
   const openCount = topLevel.length;

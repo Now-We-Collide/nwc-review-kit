@@ -1,6 +1,6 @@
 # Claude feedback loop
 
-A manual, human-run loop any team member can run. Claude reads the client's open comments, proposes fixes, and on your approval commits them to a new branch (main only if you explicitly allow it), auto-resolving each comment as soon as its fix is committed. You then check the Netlify preview and merge.
+A manual, human-run loop any team member can run. Claude reads the client's open comments, sorts each into a **change**, a **question**, or something it's **unsure of**, lays them out in per-page tables, and pauses for your input before touching anything. On your approval it makes the changes on a branch (auto-resolving each once committed), posts approved answers as replies on the review site, and leaves questions and anything unresolved open for a human.
 
 It uses the review database's **publishable key**, which already lives in this project's review kit config (`config.ts`, the `reviewConfig` object). That key is not a secret (it ships in the site's browser code), and the database rules let it read, add and resolve comments. So there is nothing to paste, no personal token, and no MCP needed.
 
@@ -10,24 +10,36 @@ Open this website's repo in Claude Code and paste the prompt below.
 
 ## Prompt
 
-> Review and action the client's website feedback for this project.
+> Review and action the client's website feedback for this project. Work in the order below, and do NOT touch code or post any reply until I have been through the table and approved (step 6).
 >
 > 1. Read the Supabase connection from the review kit config in this repo (find `reviewConfig`): use `supabaseUrl`, `supabaseAnonKey`, and `projectId`.
-> 2. List the open comments: GET `{supabaseUrl}/rest/v1/comments?project_id=eq.{projectId}&status=eq.open&select=*&order=page_path.asc` with headers `apikey: {supabaseAnonKey}` and `Authorization: Bearer {supabaseAnonKey}`.
-> 3. Group them by `page_path`. For each comment show the author, the body, the device (`anchor.device`), and the placement context from `anchor.context`: what it was placed on (`context.target` — its `text`/`label`/`role`/`tag`/`href`), which part of the page (`context.section.heading` and `context.section.landmark`), and, when it was placed *beside* rather than on something, the closest element (`context.nearest` — its `text`, `direction`, and `distance` in px). Use this to pinpoint the exact element to change. Fall back to `anchor.sel` / `anchor.px`,`anchor.py` for older comments that have no `context`.
-> 4. Triage each into **small** (copy, spacing, colour, simple content I can do confidently) or **large** (layout, structure, or concept that needs my decision). Give a one-line recommendation for each. For large ones, give up to three options and recommend one.
-> 5. Stop and wait for my approval. Do not edit code yet.
-> 6. Once I approve: work on a NEW git branch by default — create one and never commit straight to main — UNLESS in this run I have explicitly told you it's okay to use main; only then may you commit to main. Make the approved changes and commit them with a clear message.
-> 7. As soon as you have committed, AUTOMATICALLY mark the comments that commit addressed as resolved (do not ask me first): PATCH `{supabaseUrl}/rest/v1/comments?id=eq.{COMMENT_ID}` with headers `apikey`, `Authorization: Bearer {supabaseAnonKey}`, `Content-Type: application/json`, `Prefer: return=minimal`, body `{"status":"resolved"}`. List the ids you resolved.
-> 8. Push: if you're on a new branch, push it and open a pull request into main (or print the GitHub compare URL), and print the branch name; if I explicitly authorised main, push to main.
-> 9. Then tell me, in plain steps, to open the deploy preview on Netlify (the deploy-preview URL Netlify posts on the PR), click through the changed pages, confirm nothing is broken, and merge the pull request into main when it looks right (I merge it, not you).
+> 2. First, ask me one question: who should client replies be signed from? Default is `NWC`; I'll usually give something like `NWC Riu`. Hold onto it for step 7.
+> 3. List the open comments: GET `{supabaseUrl}/rest/v1/comments?project_id=eq.{projectId}&status=eq.open&select=*&order=page_path.asc` with headers `apikey: {supabaseAnonKey}` and `Authorization: Bearer {supabaseAnonKey}`. Replies are rows too (they carry `anchor.parentId`). If a top-level comment already has a reply from us, it is already handled: skip it, don't re-answer.
+> 4. Classify each top-level comment into exactly one type, using its `body` and its placement context (`anchor.context`: target `text`/`label`/`role`/`tag`, `section.heading`/`landmark`, and `nearest` if it was placed beside rather than on something; fall back to `anchor.sel` / `px`,`py` for older comments):
+>    - 🟢 small change: copy, spacing, colour, simple content you can do confidently.
+>    - 🟡 large change: layout, structure or concept that needs my decision. Prepare up to three options and a recommendation.
+>    - ❓ question: the client is asking something (e.g. "how do we edit this in HubSpot?"), not requesting a design change. Draft a suggested answer.
+>    - 🔴 unsure: you can't confidently action it, or you don't understand what they mean. Say so plainly. Never guess, and never quietly skip it. (An emoji the client typed does NOT make a comment a question; judge by the content.)
+> 5. Group by page and print ONE markdown table per page, titled with the page name. Give each comment a per-page ref: a short unique code for the page plus the pin number it has on that page (Home → H1, H2…; if two pages share a first letter, use distinct codes, e.g. Policy `PL`, Pricing `PR`). Keep it to TWO tight columns so it stays glanceable:
+>    - `Ref`: the type emoji + label, e.g. `🟢 H1`.
+>    - `Comment → action`: a short summary of the comment, then what you propose. For 🟢, the fix. For 🟡, the options + your recommendation, tagged "needs your pick". For ❓, your drafted answer, tagged "needs your approval to send". For 🔴, what's unclear, tagged "needs your input".
+>    Sort each table 🟢 first, then 🟡, then ❓, then 🔴. Tables only: do not repeat the detail in lists underneath.
+> 6. STOP. Do not edit any code and do not post any reply yet. Wait for me to pick options for the 🟡s, approve or adjust the drafted answers for the ❓s, and answer or steer the 🔴s.
+> 7. Once I approve, in a single pass:
+>    - Make the approved 🟢 and 🟡 changes on a NEW branch (never main unless I explicitly said main is okay this run) and commit them with a clear message.
+>    - As soon as they are committed, mark ONLY those committed change-comments resolved: PATCH `{supabaseUrl}/rest/v1/comments?id=eq.{COMMENT_ID}` with headers `apikey`, `Authorization: Bearer {supabaseAnonKey}`, `Content-Type: application/json`, `Prefer: return=minimal`, body `{"status":"resolved"}`.
+>    - For each ❓ whose answer I approved, post a reply onto that comment, signed from the name from step 2: POST `{supabaseUrl}/rest/v1/comments` with headers `apikey`, `Authorization: Bearer {supabaseAnonKey}`, `Content-Type: application/json`, `Prefer: return=representation`, body `{"project_id":"{projectId}","page_path":"{that comment's page_path}","anchor":{"parentId":"{PARENT_COMMENT_ID}"},"author":"{reply-from name}","body":"{the approved answer}"}`. Leave the question OPEN; a human resolves it once the thread is done.
+>    - Leave every 🔴 open and untouched.
+> 8. Push the branch and open a pull request into main (or print the GitHub compare URL), and print the branch name. Only push to main if I explicitly allowed it this run.
+> 9. Finish with a short **Needs you** list: the refs still waiting on me (🔴 to answer, 🟡 to pick, ❓ to approve), then remind me to open the Netlify deploy-preview on the PR, click through the changed pages, and merge when it looks right (I merge, not you).
 >
-> Constraints: default to a NEW branch and only ever use main with my explicit say-so in this run; never force-push, never rewrite history; only ever change a comment's `status` (never delete a row). Do not merge the pull request yourself.
+> Rules: only ever resolve a comment that was a change AND is committed, or one I explicitly tell you to resolve. NEVER resolve a question, a 🔴, or anything you did not actually address (a silently-resolved client comment reads as us ignoring them). Always get my approval before posting any client-facing reply. Default to a new branch; use main only with my explicit say-so this run. Never force-push, never rewrite history, and only ever change a comment's `status` (never delete a row). Do not merge the pull request yourself.
 
 ## Notes
 
-- Resolving sets `status = 'resolved'`; the row stays for the audit trail and so it isn't re-processed next time. The comment panel and this loop only show open comments.
-- Resolve happens automatically the moment a fix is committed (no confirmation step). A resolved comment therefore means the fix is committed, not necessarily merged/live yet — you still review the preview and merge the PR.
+- Resolving sets `status = 'resolved'`; the row stays for the audit trail and so it isn't re-processed. The comment panel and this loop only show open comments.
+- Changes auto-resolve the moment they're committed. Questions and 🔴s never auto-resolve: a human resolves them (a question once the client has seen the reply / the thread ends). This is deliberate, so nothing a client raised is closed without a real response.
+- Replies are ordinary rows with `anchor.parentId` set, authored by the name you give (default `NWC`, e.g. `NWC Riu`). The kit shows named authors verbatim (so a team reply reads as the team) and anonymous reviewers as "Reviewer N". A comment that already has a reply from us is treated as handled and not re-answered.
 - Multi-site: this works in any website that includes the kit, because it reads that site's own connection values and `projectId` from its config.
 
 ## Optional: Supabase MCP (richer, needs a secret)
