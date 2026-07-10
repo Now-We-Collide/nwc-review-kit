@@ -12,7 +12,7 @@ Open this website's repo in Claude Code and paste the prompt below.
 
 > Review and action the client's website feedback for this project. Work in the order below, and do NOT touch code or post any reply until I have been through the table and approved (step 6).
 >
-> 1. Read the Supabase connection from the review kit config in this repo (find `reviewConfig`): use `supabaseUrl`, `supabaseAnonKey`, and `projectId`.
+> 1. Read the Supabase connection from the review kit config in this repo: find the config object — the React kit exports `reviewConfig` (in `config.ts` / `lib/review.config.ts`); the vanilla/static kit sets `window.NWC_REVIEW_CONFIG` (in a `review.config.js`). Use its `supabaseUrl`, `supabaseAnonKey`, and `projectId`.
 > 2. First, ask me one question: who should client replies be signed from? Default is `NWC`; I'll usually give something like `NWC Riu`. Hold onto it for step 7.
 > 3. List the open comments: GET `{supabaseUrl}/rest/v1/comments?project_id=eq.{projectId}&status=eq.open&select=*&order=page_path.asc,created_at.asc` with headers `apikey: {supabaseAnonKey}` and `Authorization: Bearer {supabaseAnonKey}`. Replies are rows too (they carry `anchor.parentId`). If a top-level comment already has a reply from us, it is already handled: skip it, don't re-answer.
 > 4. Classify each top-level comment into exactly one type, using its `body` and its placement context (`anchor.context`: target `text`/`label`/`role`/`tag`, `section.heading`/`landmark`, and `nearest` if it was placed beside rather than on something; fall back to `anchor.sel` / `px`,`py` for older comments):

@@ -12,6 +12,8 @@ A drop-in review layer for **Next.js (App Router) + React** prototypes. It adds 
 
 The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and does NOT read the host app's CSS. Two brand logos (NWC and TheBird AI) are **bundled**, selected via `brand.logo`, so there is usually no image file to supply.
 
+> **Not a React/Next site?** For plain HTML/CSS/JS or HubSpot-ready static builds, use the **vanilla build** in `vanilla/` instead (one `<script>` + a `window.NWC_REVIEW_CONFIG` object, no framework, no build) — see `vanilla/README.md`. Everything below this line assumes the React/Next install.
+
 ## Install (exact steps)
 
 1. Add the dependency:
