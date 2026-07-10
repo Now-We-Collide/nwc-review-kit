@@ -101,6 +101,10 @@ Turn on commenting with the **Comment** button, then click anywhere on the page 
 
 - Next.js App Router, React 18+.
 
+## Plain HTML / HubSpot static sites
+
+If a site is built as plain HTML/CSS/JS (e.g. a HubSpot-ready static build) rather than React/Next, this package won't run. Use the **vanilla build** in [`vanilla/`](vanilla/) instead: one self-contained `nwc-review-kit.js` you include with a `<script>` tag plus a config object, no framework and no build step. It has the same slate, nav, and commenting, and talks to the same Supabase database, so the feedback loop is identical. See [`vanilla/README.md`](vanilla/README.md).
+
 ## Removing it for launch
 
 Include the kit only in preview/staging builds. To ship a clean production site, omit `<ReviewKitProvider>`/`<ReviewBar>` and the slate route (e.g. behind an env flag).
