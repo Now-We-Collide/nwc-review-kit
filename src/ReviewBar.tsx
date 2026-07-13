@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useReviewKit } from "./FeedbackProvider";
 import { resolveLogo } from "./logo";
-import type { ReviewConfig, ReviewPage } from "./config";
+import type { ReviewConfig, ReviewPage, ReviewChild, Status } from "./config";
 
 /*
   Client review nav. Self-styled (injected CSS, no host Tailwind needed) and
@@ -60,6 +60,15 @@ const CSS = `
 .nwc-bar .opt .lbl{font-weight:600;color:#fff}
 .nwc-bar .opt .sep{color:rgba(255,255,255,.55)}
 .nwc-bar .opt .desc{color:rgba(255,255,255,.75)}
+.nwc-bar .opt.opt-child{align-items:flex-start}
+.nwc-bar .opt .o-body{display:flex;flex-direction:column;min-width:0}
+.nwc-bar .opt .o-lbl{display:flex;align-items:center;gap:6px}
+.nwc-bar .opt .o-status{display:flex;gap:12px;margin-top:3px;font-size:10.5px;color:rgba(255,255,255,.6)}
+.nwc-bar .opt .o-stat{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.nwc-bar .opt .o-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.nwc-bar .o-stub,.nwc-bar .m-stub{margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:0 4px}
+.nwc-bar .m-row .m-substatus{display:flex;gap:12px;margin-top:2px;font-size:11px;color:rgba(255,255,255,.5);font-weight:400}
+.nwc-bar .m-row .m-substatus .o-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 .nwc-bar .comment{pointer-events:auto;z-index:10;display:flex;align-items:center;gap:8px;border:0;font-size:13.5px;font-weight:600;cursor:pointer;color:#06222a;transition:margin .3s,filter .15s}
 .nwc-bar .comment:hover{filter:brightness(1.1)}
 
@@ -127,13 +136,19 @@ const CSS = `
 .nwc-rail .r-stat{display:inline-flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nwc-rail .r-dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%}
 .nwc-rail .r-sub{overflow:hidden;max-height:0;transition:max-height .25s ease}
-.nwc-rail.open .r-sub{max-height:400px}
+.nwc-rail.open .r-sub{max-height:3000px}
 .nwc-rail .r-opt{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 44px;border-radius:9px;font-size:12.5px;color:rgba(255,255,255,.75);cursor:pointer;transition:background-color .15s}
 .nwc-rail .r-opt:hover{background:rgba(255,255,255,.06)}
 .nwc-rail .r-opt.active{background:rgba(255,255,255,.08);color:#fff}
 .nwc-rail .r-opt .r-tick{width:12px;flex:0 0 auto;color:rgba(255,255,255,.9)}
 .nwc-rail .r-opt .r-opt-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nwc-rail .r-opt .r-desc{color:rgba(255,255,255,.45)}
+.nwc-rail .r-opt.r-child{align-items:flex-start}
+.nwc-rail .r-child .r-tick{margin-top:1px}
+.nwc-rail .r-cbody{display:flex;flex-direction:column;min-width:0;flex:1}
+.nwc-rail .r-clabel{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nwc-rail .r-opt.stub .r-clabel{color:rgba(255,255,255,.55)}
+.nwc-rail .r-stub-badge{flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:0 4px;line-height:1.5}
 .nwc-rail .r-foot{flex:0 0 auto;padding:8px}
 /* collapsed: a compact 40px icon button; expanded: full-width with a label */
 .nwc-rail .r-comment{width:40px;margin:0 auto;display:flex;align-items:center;gap:10px;justify-content:center;overflow:hidden;border:0;border-radius:12px;padding:0;height:40px;font-size:13.5px;font-weight:700;color:#06222a;cursor:pointer;transition:width .25s ease,margin .25s ease,filter .15s}
@@ -166,11 +181,101 @@ function CommentIcon() {
 // tone -> status dot colour, matching the slate's good/warn/todo palette.
 const TONE_DOT: Record<string, string> = { good: "#4ade80", warn: "#fbbf24", todo: "#9aa0ad" };
 
+function normPath(p: string): string {
+  if (!p) return "/";
+  p = p.replace(/\/index\.html?$/i, "/").replace(/\.html?$/i, "");
+  if (p.length > 1) p = p.replace(/\/+$/, "");
+  return p || "/";
+}
+function pageHref(page: ReviewPage): string {
+  return page.href ?? (page.options && page.options[0] ? `${page.basePath}/${page.options[0].slug}` : "#");
+}
+function hrefActive(href: string | undefined, pathname: string): boolean {
+  return !!href && normPath(href) === normPath(pathname);
+}
+function anyDescendantActive(node: { href?: string; children?: ReviewChild[] }, pathname: string): boolean {
+  if (hrefActive(node.href, pathname)) return true;
+  return (node.children ?? []).some((c) => anyDescendantActive(c, pathname));
+}
+function isPageActive(page: ReviewPage, pathname: string): boolean {
+  if (page.basePath && (pathname === page.basePath || pathname.startsWith(page.basePath + "/"))) return true;
+  return anyDescendantActive(page, pathname);
+}
 function useActivePage(config: ReviewConfig, pathname: string): ReviewPage | null {
+  return config.pages.find((p) => isPageActive(p, pathname)) ?? null;
+}
+
+// coloured-dot status row, reused by page + child rows in the rail
+function StatusRow({ status }: { status?: { design?: Status; copy?: Status } }) {
+  if (!status || (!status.design && !status.copy)) return null;
   return (
-    config.pages
-      .filter((p) => pathname === p.basePath || pathname.startsWith(p.basePath + "/"))
-      .sort((a, b) => b.basePath.length - a.basePath.length)[0] ?? null
+    <span className="r-status-row">
+      {status.design && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[status.design.tone] }} />{status.design.label}</span>}
+      {status.copy && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[status.copy.tone] }} />{status.copy.label}</span>}
+    </span>
+  );
+}
+
+// Side-rail child sub-row (recursive): own href, own status, indent per depth, stub marker.
+function RailChild({ child, depth, pathname }: { child: ReviewChild; depth: number; pathname: string }) {
+  const active = hrefActive(child.href, pathname);
+  return (
+    <>
+      <Link href={child.href} className={`r-opt r-child ${active ? "active " : ""}${child.stub ? "stub" : ""}`} style={{ paddingLeft: 44 + (depth - 1) * 16 }}>
+        <span className="r-tick">{active ? "✓" : ""}</span>
+        <span className="r-cbody">
+          <span className="r-clabel"><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{child.label}</span>{child.stub && <span className="r-stub-badge">stub</span>}</span>
+          <StatusRow status={child.status} />
+        </span>
+      </Link>
+      {(child.children ?? []).map((gc, i) => <RailChild key={i} child={gc} depth={depth + 1} pathname={pathname} />)}
+    </>
+  );
+}
+
+// Top-bar dropdown child row (recursive).
+function TopChild({ child, depth, pathname, accent }: { child: ReviewChild; depth: number; pathname: string; accent: string }) {
+  const active = hrefActive(child.href, pathname);
+  const st = child.status;
+  return (
+    <>
+      <Link href={child.href} className={`opt opt-child ${active ? "active" : ""}`} style={depth ? { paddingLeft: 12 + depth * 14 } : undefined}>
+        <span className="tick" style={{ color: accent }}>{active ? "✓" : ""}</span>
+        <span className="o-body">
+          <span className="o-lbl"><span className="lbl">{child.label}</span>{child.stub && <span className="o-stub">stub</span>}</span>
+          {st && (st.design || st.copy) && (
+            <span className="o-status">
+              {st.design && <span className="o-stat"><span className="o-dot" style={{ background: TONE_DOT[st.design.tone] }} />{st.design.label}</span>}
+              {st.copy && <span className="o-stat"><span className="o-dot" style={{ background: TONE_DOT[st.copy.tone] }} />{st.copy.label}</span>}
+            </span>
+          )}
+        </span>
+      </Link>
+      {(child.children ?? []).map((gc, i) => <TopChild key={i} child={gc} depth={depth + 1} pathname={pathname} accent={accent} />)}
+    </>
+  );
+}
+
+// Mobile menu child row (recursive).
+function MobileChild({ child, depth, pathname, accent }: { child: ReviewChild; depth: number; pathname: string; accent: string }) {
+  const active = hrefActive(child.href, pathname);
+  const st = child.status;
+  return (
+    <>
+      <Link href={child.href} className={`m-row ${active ? "active" : ""}`} style={{ paddingLeft: 12 + depth * 14 }}>
+        <span className="m-tick" style={{ color: accent }}>{active ? "✓" : ""}</span>
+        <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span>{child.label}{child.stub && <span className="m-stub">stub</span>}</span>
+          {st && (st.design || st.copy) && (
+            <span className="m-substatus">
+              {st.design && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span className="o-dot" style={{ background: TONE_DOT[st.design.tone] }} />{st.design.label}</span>}
+              {st.copy && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span className="o-dot" style={{ background: TONE_DOT[st.copy.tone] }} />{st.copy.label}</span>}
+            </span>
+          )}
+        </span>
+      </Link>
+      {(child.children ?? []).map((gc, i) => <MobileChild key={i} child={gc} depth={depth + 1} pathname={pathname} accent={accent} />)}
+    </>
   );
 }
 
@@ -274,12 +379,13 @@ function TopBar() {
                 </Link>
 
                 {config.pages.map((page) => {
-                  const isActive = activePage?.key === page.key;
-                  const multi = page.options.length > 1;
-                  const directHref = page.href ?? `${page.basePath}/${page.options[0].slug}`;
+                  const isActive = isPageActive(page, pathname);
+                  const kids = page.children ?? [];
+                  const multiOpt = (page.options?.length ?? 0) > 1;
+                  const directHref = pageHref(page);
                   const open = openTab === page.key;
 
-                  if (!multi) {
+                  if (!kids.length && !multiOpt) {
                     return <Link key={page.key} href={directHref} className={`tab ${isActive ? "active" : ""}`}>{page.label}</Link>;
                   }
 
@@ -288,18 +394,20 @@ function TopBar() {
                       <Link href={directHref} className={`tab ${isActive ? "active" : ""}`}>{page.label}<Caret open={open} /></Link>
                       <div className={`menu ${open ? "" : "closed"}`}>
                         <div className="menu-inner" style={{ background: DROP_BG }}>
-                          {page.options.map((opt) => {
-                            const href = `${page.basePath}/${opt.slug}`;
-                            const optActive = pathname === href;
-                            return (
-                              <Link key={opt.slug} href={href} onClick={() => setOpenTab(null)} className={`opt ${optActive ? "active" : ""}`}>
-                                <span className="tick" style={{ color: ACCENT }}>{optActive ? "✓" : ""}</span>
-                                <span className="lbl">{opt.label}</span>
-                                {opt.descriptor && <span className="sep">·</span>}
-                                {opt.descriptor && <span className="desc">{opt.descriptor}</span>}
-                              </Link>
-                            );
-                          })}
+                          {kids.length > 0
+                            ? kids.map((c, i) => <TopChild key={i} child={c} depth={0} pathname={pathname} accent={ACCENT} />)
+                            : page.options!.map((opt) => {
+                                const href = `${page.basePath}/${opt.slug}`;
+                                const optActive = pathname === href;
+                                return (
+                                  <Link key={opt.slug} href={href} onClick={() => setOpenTab(null)} className={`opt ${optActive ? "active" : ""}`}>
+                                    <span className="tick" style={{ color: ACCENT }}>{optActive ? "✓" : ""}</span>
+                                    <span className="lbl">{opt.label}</span>
+                                    {opt.descriptor && <span className="sep">·</span>}
+                                    {opt.descriptor && <span className="desc">{opt.descriptor}</span>}
+                                  </Link>
+                                );
+                              })}
                         </div>
                       </div>
                     </div>
@@ -409,11 +517,9 @@ function SideRail() {
           <div className="r-scroll">
             <div className="r-groups">
             {config.pages.map((page) => {
-              const isActive = activePage?.key === page.key;
-              const multi = page.options.length > 1;
-              const directHref = page.href ?? `${page.basePath}/${page.options[0].slug}`;
-              const design = page.status?.design;
-              const copy = page.status?.copy;
+              const isActive = isPageActive(page, pathname);
+              const kids = page.children ?? [];
+              const multiOpt = (page.options?.length ?? 0) > 1;
               const icon = page.label.slice(0, 1).toUpperCase();
 
               const rowInner = (
@@ -421,29 +527,29 @@ function SideRail() {
                   <span className="r-ic">{icon}</span>
                   <span className="r-body">
                     <span className="r-lbl">{page.label}</span>
-                    {(design || copy) && (
-                      <span className="r-status-row">
-                        {design && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[design.tone] }} />{design.label}</span>}
-                        {copy && <span className="r-stat"><span className="r-dot" style={{ background: TONE_DOT[copy.tone] }} />{copy.label}</span>}
-                      </span>
-                    )}
+                    <StatusRow status={page.status} />
                   </span>
                 </>
               );
 
               return (
-                // Multi-option pages are headers (options always shown below);
-                // single-option pages are links that navigate on click.
+                // Section with children (or a plain/single page) links to its landing;
+                // an options-only multi page keeps its non-link label + variant sub-rows.
                 <div key={page.key} className={`r-group ${isActive ? "active" : ""}`}>
-                  {multi ? (
+                  {(!kids.length && multiOpt) ? (
                     <div className="r-item">{rowInner}</div>
                   ) : (
-                    <Link href={directHref} className="r-item">{rowInner}</Link>
+                    <Link href={pageHref(page)} className="r-item">{rowInner}</Link>
                   )}
 
-                  {multi && (
+                  {kids.length > 0 && (
                     <div className="r-sub">
-                      {page.options.map((opt) => {
+                      {kids.map((c, i) => <RailChild key={i} child={c} depth={1} pathname={pathname} />)}
+                    </div>
+                  )}
+                  {!kids.length && multiOpt && (
+                    <div className="r-sub">
+                      {page.options!.map((opt) => {
                         const href = `${page.basePath}/${opt.slug}`;
                         const optActive = pathname === href;
                         return (
@@ -512,12 +618,20 @@ function MobileMenu({ config, activePage, pathname, ACCENT, mobileOpen }: {
   return (
     <div className={`m-panel ${mobileOpen ? "" : "closed"}`}>
       {config.pages.map((page) => {
-        const multi = page.options.length > 1;
-        if (!multi) {
-          const href = page.href ?? `${page.basePath}/${page.options[0].slug}`;
+        const kids = page.children ?? [];
+        const multiOpt = (page.options?.length ?? 0) > 1;
+        if (kids.length) {
+          return (
+            <div key={page.key}>
+              <Link href={pageHref(page)} className={`m-row ${isPageActive(page, pathname) ? "active" : ""}`}>{page.label}<span className="m-arrow">↗</span></Link>
+              {kids.map((c, i) => <MobileChild key={i} child={c} depth={1} pathname={pathname} accent={ACCENT} />)}
+            </div>
+          );
+        }
+        if (!multiOpt) {
           const isActive = activePage?.key === page.key;
           return (
-            <Link key={page.key} href={href} className={`m-row ${isActive ? "active" : ""}`}>
+            <Link key={page.key} href={pageHref(page)} className={`m-row ${isActive ? "active" : ""}`}>
               {page.label}
               <span className="m-arrow">↗</span>
             </Link>
@@ -526,7 +640,7 @@ function MobileMenu({ config, activePage, pathname, ACCENT, mobileOpen }: {
         return (
           <div key={page.key}>
             <div className="m-grouplabel">{page.label}</div>
-            {page.options.map((opt) => {
+            {page.options!.map((opt) => {
               const href = `${page.basePath}/${opt.slug}`;
               const optActive = pathname === href;
               return (

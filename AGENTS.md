@@ -91,10 +91,13 @@ The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and doe
 - `brand`: `{ name: string; logo?: "nwc" | "thebird" | string; accent: string }` — `logo` optional: a bundled key (`"nwc"` default, `"thebird"`) or a URL/path; `accent` is a hex used for the comment button, pins and slate.
 - `bar?`: `{ position?: "top" | "side"; autoHide?: boolean }` — `position` defaults to `"top"`; `autoHide` (top bar only, default `true`) hides it on scroll-down and reveals on scroll-up/pointer-to-top.
 - `slate`: `{ dashboardLabel, title, client, version, status }`.
-- `pages[]`: `{ key, label, basePath, href?, options, status? }`.
-  - `options[]`: `{ slug, label, descriptor? }`. One option = a single page (no dropdown). Multiple = a switchable design comparison.
-  - `href?`: overrides the link target (use for single-page sections).
-  - `status?`: `{ design?: {label, tone}, copy?: {label, tone} }`, `tone` is `"good" | "warn" | "todo"`, shown on the slate.
+- `pages[]`: `{ key, label, basePath?, href?, commentPath?, stub?, options?, children?, status? }`.
+  - `options[]`: `{ slug, label, descriptor? }` — design **variants** of one page (same `basePath`, different `slug`). Multiple = a switchable comparison.
+  - `children[]`: **subpages** (a section tree), distinct from options. Each child: `{ label, href, commentPath?, stub?, status?, children? }` — a real page with its own URL and status; nests to any depth. A section with children links to its landing (`href`) AND lists the children beneath, each with its own status.
+  - `href?`: the page's landing/link target (overrides `basePath`/`slug`).
+  - `commentPath?`: a stable key for this page's comments, so identity survives a URL change (defaults to the URL). Works on pages and children.
+  - `stub?`: mark a placeholder page; rendered with a distinct badge/marker.
+  - `status?`: `{ design?: {label, tone}, copy?: {label, tone} }`, `tone` is `"good" | "warn" | "todo"`, shown as coloured dots on the slate + nav (pages and children).
 
 ## Reviewing comments with Claude
 

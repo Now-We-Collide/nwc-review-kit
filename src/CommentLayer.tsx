@@ -5,6 +5,32 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { fetchComments, createComment, updateComment, setStatus, type Anchor, type Comment, type DbConfig, type CommentTarget, type CommentContext } from "./comments";
 import { useReviewKit } from "./FeedbackProvider";
+import type { ReviewConfig } from "./config";
+
+// A page/child may declare a `commentPath` to keep comment identity stable even
+// if its URL changes. Match the current path to a node in the config tree and
+// prefer one that declares commentPath; otherwise fall back to the URL.
+function normPath(p: string): string {
+  if (!p) return "/";
+  p = p.replace(/\/index\.html?$/i, "/").replace(/\.html?$/i, "");
+  if (p.length > 1) p = p.replace(/\/+$/, "");
+  return p || "/";
+}
+type CpNode = { href?: string; commentPath?: string; children?: CpNode[] };
+function resolveCommentPath(config: ReviewConfig, pathname: string): string {
+  let found: CpNode | null = null;
+  const walk = (nodes: CpNode[]) => {
+    for (const n of nodes) {
+      if (n.href && normPath(n.href) === normPath(pathname) && (!found || (n.commentPath && !found.commentPath))) found = n;
+      if (n.children) walk(n.children);
+    }
+  };
+  walk(config.pages as unknown as CpNode[]);
+  if (found && (found as CpNode).commentPath) return (found as CpNode).commentPath as string;
+  const bp = config.pages.find((p) => p.basePath && (pathname === p.basePath || pathname.startsWith(p.basePath + "/")));
+  if (bp?.commentPath) return bp.commentPath;
+  return pathname;
+}
 
 /*
   In-page commenting overlay. Reads config + on/off state from context.
@@ -230,6 +256,7 @@ export default function CommentLayer() {
   const db: DbConfig = { supabaseUrl: config.supabaseUrl, supabaseAnonKey: config.supabaseAnonKey, projectId: config.projectId };
 
   const pathname = usePathname();
+  const commentPath = resolveCommentPath(config, pathname); // stable comment key (falls back to the URL)
   const [mounted, setMounted] = useState(false);
   const [clientId, setClientId] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
@@ -259,11 +286,11 @@ export default function CommentLayer() {
   }, []);
 
   const load = useCallback(() => {
-    fetchComments(db, pathname)
+    fetchComments(db, commentPath)
       .then((c) => { setComments(c.filter((x) => x.status !== "resolved")); setErr(null); })
       .catch((e) => setErr(`Could not load: ${(e as Error).message}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, config.supabaseUrl, config.supabaseAnonKey, config.projectId]);
+  }, [commentPath, config.supabaseUrl, config.supabaseAnonKey, config.projectId]);
 
   useEffect(() => { if (enabled) load(); else { setDraft(null); setOpenId(null); setEditingId(null); } }, [enabled, load]);
 
@@ -362,7 +389,7 @@ export default function CommentLayer() {
   const saveDraft = async () => {
     if (!draft || !draftText.trim() || !clientId) return;
     try {
-      const c = await createComment(db, { pagePath: pathname, anchor: draft.anchor, body: draftText.trim(), clientId });
+      const c = await createComment(db, { pagePath: commentPath, anchor: draft.anchor, body: draftText.trim(), clientId });
       setComments((prev) => [...prev, c]);
       setDraft(null);
       setDraftText("");
@@ -372,7 +399,7 @@ export default function CommentLayer() {
   const saveReply = async (parent: Comment) => {
     if (!replyText.trim() || !clientId) return;
     try {
-      const c = await createComment(db, { pagePath: pathname, anchor: parent.anchor, body: replyText.trim(), clientId, parentId: parent.id });
+      const c = await createComment(db, { pagePath: commentPath, anchor: parent.anchor, body: replyText.trim(), clientId, parentId: parent.id });
       setComments((prev) => [...prev, c]);
       setReplyText("");
     } catch (e) { setErr(`Could not reply: ${(e as Error).message}`); }

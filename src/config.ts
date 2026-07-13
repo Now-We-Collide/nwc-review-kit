@@ -15,13 +15,27 @@ export type ReviewOption = {
   ready?: boolean;
 };
 
+// A subpage under a section. Unlike an `option` (a design variant of one page),
+// a child is its own real page with its own URL and status. Children may nest.
+export type ReviewChild = {
+  label: string;
+  href: string; // the child's real page URL
+  commentPath?: string; // stable comment key if the URL may change (defaults to the URL)
+  stub?: boolean; // placeholder page; rendered with a distinct marker
+  status?: { design?: Status; copy?: Status };
+  children?: ReviewChild[]; // nested subpages (any depth)
+};
+
 export type ReviewPage = {
   key: string;
   label: string;
-  basePath: string; // e.g. "/policy"
-  href?: string; // explicit tab target (overrides basePath/slug)
-  options: ReviewOption[];
-  status?: { design?: Status; copy?: Status }; // shown on the slate
+  basePath?: string; // e.g. "/policy" (for option-based pages)
+  href?: string; // explicit tab/landing target (overrides basePath/slug)
+  commentPath?: string; // stable comment key if the URL may change
+  stub?: boolean; // placeholder page; rendered with a distinct marker
+  options?: ReviewOption[]; // design variants of THIS page (same basePath, different slug)
+  children?: ReviewChild[]; // subpages (a section tree); distinct from options
+  status?: { design?: Status; copy?: Status }; // shown on the slate + nav
 };
 
 // Where the review nav sits. "top" is the classic bar (good early on, before the

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useReviewKit } from "./FeedbackProvider";
-import type { Tone } from "./config";
+import type { Tone, Status, ReviewPage, ReviewChild } from "./config";
 import { resolveLogo } from "./logo";
 
 /*
@@ -13,6 +13,36 @@ import { resolveLogo } from "./logo";
 */
 
 const toneColor: Record<Tone, string> = { good: "#4ade80", warn: "#fbbf24", todo: "#9aa0ad" };
+
+type SlateStatus = { design?: Status; copy?: Status };
+function SlateRow({ label, href, status, stub, accent, depth }: { label: string; href: string; status?: SlateStatus; stub?: boolean; accent: string; depth: number }) {
+  return (
+    <Link className={`row${depth ? " row-child" : ""}${stub ? " stub" : ""}`} href={href} style={depth ? { paddingLeft: 12 + depth * 16 } : undefined}>
+      <div className="row-top">
+        <span className="row-label">{label}{stub && <span className="row-stub">stub</span>}</span>
+        <span style={{ color: accent }}>↗</span>
+      </div>
+      {(status?.design || status?.copy) && (
+        <div className="chips">
+          {status.design && <span className="chip"><span className="dot" style={{ background: toneColor[status.design.tone] }} />{status.design.label}</span>}
+          {status.copy && <span className="chip"><span className="dot" style={{ background: toneColor[status.copy.tone] }} />{status.copy.label}</span>}
+        </div>
+      )}
+    </Link>
+  );
+}
+// Recursive slate tree: section at depth 0, children indented below.
+function SlateTree({ node, depth, accent }: { node: ReviewPage | ReviewChild; depth: number; accent: string }) {
+  const href = depth
+    ? (node as ReviewChild).href
+    : ((node as ReviewPage).href ?? `${(node as ReviewPage).basePath}/${(node as ReviewPage).options?.[0]?.slug ?? ""}`);
+  return (
+    <>
+      <SlateRow label={node.label} href={href} status={node.status} stub={node.stub} accent={accent} depth={depth} />
+      {(node.children ?? []).map((c, i) => <SlateTree key={i} node={c} depth={depth + 1} accent={accent} />)}
+    </>
+  );
+}
 
 const CSS = `
 .nwc-slate{position:relative;min-height:calc(100vh - 56px);overflow:hidden;background:#0d0d0f;color:#fff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -47,6 +77,9 @@ const CSS = `
 .nwc-slate .chips{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 16px}
 .nwc-slate .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.55)}
 .nwc-slate .dot{width:6px;height:6px;border-radius:50%}
+.nwc-slate .row-child .row-label{font-size:13px;color:rgba(255,255,255,.72)}
+.nwc-slate .row-child.stub .row-label{color:rgba(255,255,255,.5)}
+.nwc-slate .row-stub{margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:0 4px}
 .nwc-slate .callouts{display:none}
 .nwc-slate .callout{position:absolute;width:210px;border-radius:8px;background:#fff;padding:8px 12px;font-size:12px;font-weight:500;line-height:1.35;color:#1a1d24;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
 .nwc-slate .callout .arrow{position:absolute;top:-6px;left:50%;width:12px;height:12px;transform:translateX(-50%) rotate(45deg);background:#fff}
@@ -103,7 +136,7 @@ export default function Slate() {
               <span className="status" style={{ color: ACCENT }}>{slate.status}</span>
             </div>
             <div className="cta-row">
-              <Link className="cta" style={{ background: ACCENT }} href={pages[0]?.href ?? `${pages[0]?.basePath}/${pages[0]?.options[0]?.slug ?? ""}`}>
+              <Link className="cta" style={{ background: ACCENT }} href={pages[0]?.href ?? `${pages[0]?.basePath}/${pages[0]?.options?.[0]?.slug ?? ""}`}>
                 View the prototype <span aria-hidden>→</span>
               </Link>
             </div>
@@ -111,27 +144,7 @@ export default function Slate() {
 
           <div className="panel">
             <div className="panel-h">Pages</div>
-            {pages.map((page) => {
-              const href = page.href ?? `${page.basePath}/${page.options[0].slug}`;
-              return (
-                <Link key={page.key} className="row" href={href}>
-                  <div className="row-top">
-                    <span className="row-label">{page.label}</span>
-                    <span style={{ color: ACCENT }}>↗</span>
-                  </div>
-                  {(page.status?.design || page.status?.copy) && (
-                    <div className="chips">
-                      {page.status?.design && (
-                        <span className="chip"><span className="dot" style={{ background: toneColor[page.status.design.tone] }} />{page.status.design.label}</span>
-                      )}
-                      {page.status?.copy && (
-                        <span className="chip"><span className="dot" style={{ background: toneColor[page.status.copy.tone] }} />{page.status.copy.label}</span>
-                      )}
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
+            {pages.map((page) => <SlateTree key={page.key} node={page} depth={0} accent={ACCENT} />)}
           </div>
         </div>
       </div>
