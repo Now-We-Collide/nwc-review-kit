@@ -834,11 +834,18 @@
       actions.style.display = "none";
       rta.addEventListener("input", function () { actions.style.display = rta.value.trim() ? "flex" : "none"; });
       replyCancel.addEventListener("click", function () { rta.value = ""; rta.dispatchEvent(new Event("input")); });
+      /* In-flight guard — see the note on the draft composer below. A reply
+         is the worse of the two cases: it never clears its textarea until the
+         request resolves, so the emptiness check cannot fire in the meantime
+         even in principle. */
+      var replying = false;
       replyBtn.addEventListener("click", function () {
-        var text = rta.value.trim(); if (!text) return;
+        var text = rta.value.trim(); if (replying || !text) return;
+        replying = true; replyBtn.disabled = true; replyBtn.textContent = "Saving…"; replyBtn.style.opacity = ".5";
         createComment({ pagePath: cpath, anchor: c.anchor, body: text, clientId: clientId, parentId: c.id })
           .then(function (nc) { comments.push(nc); rta.value = ""; renderAll(); })
-          .catch(function (e) { err = "Could not reply: " + e.message; renderPanel(); });
+          .catch(function (e) { err = "Could not reply: " + e.message; renderPanel(); })
+          .then(function () { replying = false; replyBtn.disabled = false; replyBtn.textContent = "Reply"; replyBtn.style.opacity = "1"; });
       });
       composer.appendChild(actions);
       body.appendChild(composer);
@@ -866,11 +873,22 @@
       var commentBtn = h("button", { style: "flex:1;padding:9px;border:0;border-radius:8px;background:" + ACCENT + ";color:" + ACCENT_INK + ";font-size:13px;font-weight:700;cursor:pointer;opacity:.5", text: "Comment" });
       var cancelBtn = h("button", { style: "padding:9px 12px;border:1px solid #d8dbe4;border-radius:8px;background:#fff;color:#5b5d6e;font-size:13px;cursor:pointer", text: "Cancel" });
       ta.addEventListener("input", function () { commentBtn.style.opacity = ta.value.trim() ? "1" : ".5"; });
+      /* ── ONE INSERT PER CLICK ────────────────────────────────────────────
+         The only guard used to be the emptiness check, and the textarea is not
+         cleared until `closeDraft()` runs inside `.then` — so every click
+         landing during the round trip fired another INSERT. Reported in the
+         field as seven identical comments inside 700ms on a laggy connection.
+
+         The visible "Saving…" state is not decoration: the user clicked again
+         because nothing told them the first click had landed. */
+      var posting = false;
       commentBtn.addEventListener("click", function () {
-        var text = ta.value.trim(); if (!text) return;
+        var text = ta.value.trim(); if (posting || !text) return;
+        posting = true; commentBtn.disabled = true; commentBtn.textContent = "Saving…"; commentBtn.style.opacity = ".5";
         createComment({ pagePath: cpath, anchor: anchor, body: text, clientId: clientId })
           .then(function (nc) { comments.push(nc); closeDraft(); renderAll(); })
-          .catch(function (e) { err = "Could not save: " + e.message; renderPanel(); });
+          .catch(function (e) { err = "Could not save: " + e.message; renderPanel(); })
+          .then(function () { posting = false; commentBtn.disabled = false; commentBtn.textContent = "Comment"; commentBtn.style.opacity = ta.value.trim() ? "1" : ".5"; });
       });
       cancelBtn.addEventListener("click", function () { closeDraft(); });
       card.appendChild(ta);
