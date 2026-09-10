@@ -6,7 +6,7 @@ window.NWC_REVIEW_CONFIG = {
   supabaseUrl: "https://fqwvgmkexczmulglowyb.supabase.co",
   supabaseAnonKey: "sb_publishable_ysrEfTmjafve6prmuYIi3A_IfmkOgsU", // publishable key (safe to ship)
   brand: { name: "Now We Collide", logo: "nwc", accent: "#4ae0f9" }, // logo: "nwc" | "thebird" | a URL
-  bar: { position: "side", autoHide: true },             // "side" | "top"
+  bar: { position: "side", autoHide: true, rounds: false }, // "side" | "top"; rounds: top-level pages are rounds of design, newest first
   slate: { dashboardLabel: "Website Review Dashboard", title: "My Site", client: "Client", version: "v0.1", status: "For review" },
   pages: [
     { key: "home", label: "Home", basePath: "/home",

@@ -386,7 +386,25 @@ export default function CommentLayer() {
     return () => { window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); setHl(null); };
   }, [draft]);
 
-  const saveDraft = async () => {
+  /* ---- ONE CLICK, ONE COMMENT ----------------------------------------
+     The send button sat there enabled for the whole round-trip to Supabase,
+     and a slow one invites a second click. On Caidence's 4 Sep review pass
+     that turned thirteen comments into twenty-two rows.
+
+     The REF is what actually stops it. A `busy` state check would not: two
+     clicks in the same tick both read the pre-render value and both post. The
+     state exists only to disable the button and say "Saving…", so the reviewer
+     can see why nothing has happened yet. */
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const runOnce = async (fn: () => Promise<void>) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try { await fn(); } finally { savingRef.current = false; setSaving(false); }
+  };
+
+  const saveDraft = () => runOnce(async () => {
     if (!draft || !draftText.trim() || !clientId) return;
     try {
       const c = await createComment(db, { pagePath: commentPath, anchor: draft.anchor, body: draftText.trim(), clientId });
@@ -394,16 +412,16 @@ export default function CommentLayer() {
       setDraft(null);
       setDraftText("");
     } catch (e) { setErr(`Could not save: ${(e as Error).message}`); }
-  };
+  });
 
-  const saveReply = async (parent: Comment) => {
+  const saveReply = (parent: Comment) => runOnce(async () => {
     if (!replyText.trim() || !clientId) return;
     try {
       const c = await createComment(db, { pagePath: commentPath, anchor: parent.anchor, body: replyText.trim(), clientId, parentId: parent.id });
       setComments((prev) => [...prev, c]);
       setReplyText("");
     } catch (e) { setErr(`Could not reply: ${(e as Error).message}`); }
-  };
+  });
 
   const saveEdit = async (c: Comment) => {
     const body = editText.trim();
@@ -541,7 +559,7 @@ export default function CommentLayer() {
                 <AutoTextarea value={replyText} onChange={setReplyText} placeholder="Reply…" />
                 {replyText.trim() && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <button onClick={() => saveReply(c)} style={{ flex: 1, padding: "8px", border: 0, borderRadius: 8, background: ACCENT, color: ACCENT_INK, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Reply</button>
+                    <button onClick={() => saveReply(c)} disabled={!replyText.trim() || saving} style={{ flex: 1, padding: "8px", border: 0, borderRadius: 8, background: ACCENT, color: ACCENT_INK, fontSize: 12.5, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: replyText.trim() && !saving ? 1 : 0.5 }}>{saving ? "Saving…" : "Reply"}</button>
                     <button onClick={() => setReplyText("")} style={{ padding: "8px 12px", border: "1px solid #d8dbe4", borderRadius: 8, background: "#fff", color: "#5b5d6e", fontSize: 12.5, cursor: "pointer" }}>Cancel</button>
                   </div>
                 )}
@@ -562,7 +580,7 @@ export default function CommentLayer() {
         <div data-nwc-pop style={{ position: "fixed", left: box.left, top: box.top, width, maxHeight: box.maxHeight, overflowY: "auto", background: "#fff", borderRadius: 10, boxShadow: "0 12px 40px rgba(0,0,0,.3)", zIndex: Z + 6, padding: 14, fontFamily: "system-ui, sans-serif" }}>
           <AutoTextarea value={draftText} onChange={setDraftText} autoFocus placeholder="Leave a comment…" />
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button onClick={saveDraft} disabled={!draftText.trim()} style={{ flex: 1, padding: "9px", border: 0, borderRadius: 8, background: ACCENT, color: ACCENT_INK, fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: draftText.trim() ? 1 : 0.5 }}>Comment</button>
+            <button onClick={saveDraft} disabled={!draftText.trim() || saving} style={{ flex: 1, padding: "9px", border: 0, borderRadius: 8, background: ACCENT, color: ACCENT_INK, fontSize: 13, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: draftText.trim() && !saving ? 1 : 0.5 }}>{saving ? "Saving…" : "Comment"}</button>
             <button onClick={() => setDraft(null)} style={{ padding: "9px 12px", border: "1px solid #d8dbe4", borderRadius: 8, background: "#fff", color: "#5b5d6e", fontSize: 13, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>

@@ -18,8 +18,11 @@ import type { ReviewConfig, ReviewPage, ReviewChild, Status } from "./config";
 
   "side" — a slim rail pinned to the right edge that expands on hover/click.
   Use it once the site has its own nav so there aren't two competing top bars.
-  It peeks open once on load (so it's discoverable), then rests as a slim
-  strip; expanded it has room for per-page copy status and the dev round.
+  It rests as a slim strip and only opens when you point at it (it stays open
+  on the slate, where it is the navigation). Expanded it has room for per-page
+  copy status and the dev round. With config.bar.rounds it reads the top-level
+  pages as rounds of design, newest first: the first is the current round and
+  stays open, the rest are past rounds, dimmed and collapsed until clicked.
 
   Mobile (<=820px): "top" is a solid dark bar + slide-down menu; "side" docks
   the same controls to the bottom-right so the top of the page stays clear.
@@ -135,8 +138,24 @@ const CSS = `
 .nwc-rail .r-status-row{display:flex;gap:14px;min-width:0;overflow:hidden;white-space:nowrap;margin-top:4px}
 .nwc-rail .r-stat{display:inline-flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nwc-rail .r-dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%}
-.nwc-rail .r-sub{overflow:hidden;max-height:0;transition:max-height .25s ease}
-.nwc-rail.open .r-sub{max-height:3000px}
+/* Sub-rows are display:none while the rail is a slim strip. Two things follow.
+   The collapsed panel is exactly as tall as its top-level rows — the short
+   height you see on load, and the one it keeps. And opening the rail puts every
+   row in its final position at once instead of sliding them past the pointer
+   for a quarter of a second, which is what made a click land on the wrong row. */
+.nwc-rail .r-sub{display:none}
+.nwc-rail.open .r-sub{display:block;overflow:hidden;max-height:0;transition:max-height .28s ease}
+.nwc-rail.open .r-group.expanded .r-sub{max-height:3000px}
+.nwc-rail button.r-item{width:100%;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.nwc-rail button.r-item:hover{background:rgba(255,255,255,.07)}
+.nwc-rail .r-caret{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;color:rgba(255,255,255,.55);opacity:0;transition:opacity .2s,transform .2s}
+.nwc-rail.open .r-caret{opacity:1}
+.nwc-rail .r-caret.open{transform:rotate(180deg)}
+/* Past rounds stay on the site because clients refer back to them when talking
+   about the current one. They are not what this round is asking about, so they
+   sit back until you point at one. */
+.nwc-rail .r-group.past .r-item{opacity:.5;transition:opacity .15s}
+.nwc-rail .r-group.past:hover .r-item,.nwc-rail .r-group.past.expanded .r-item{opacity:1}
 .nwc-rail .r-opt{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 44px;border-radius:9px;font-size:12.5px;color:rgba(255,255,255,.75);cursor:pointer;transition:background-color .15s}
 .nwc-rail .r-opt:hover{background:rgba(255,255,255,.06)}
 .nwc-rail .r-opt.active{background:rgba(255,255,255,.08);color:#fff}
@@ -203,6 +222,25 @@ function isPageActive(page: ReviewPage, pathname: string): boolean {
 }
 function useActivePage(config: ReviewConfig, pathname: string): ReviewPage | null {
   return config.pages.find((p) => isPageActive(p, pathname)) ?? null;
+}
+
+// A section with children is a group HEADER in the rail, not a link — clicking
+// it opens and closes the group. Its own landing page still has to be reachable,
+// so it becomes the first sub-row. Derived, not configured: the row appears only
+// when no child already points at that URL, so a config whose first child IS the
+// landing page (round 1 -> option 1) gets no duplicate.
+function collectHrefs(nodes: ReviewChild[], out: Set<string>): void {
+  for (const n of nodes) { out.add(normPath(n.href)); if (n.children) collectHrefs(n.children, out); }
+}
+function railChildren(page: ReviewPage): ReviewChild[] {
+  const kids = page.children ?? [];
+  if (!page.href || !kids.length) return kids;
+  const seen = new Set<string>();
+  collectHrefs(kids, seen);
+  if (seen.has(normPath(page.href))) return kids;
+  // No status on this row: the group header above it already carries the
+  // section's status, and saying it twice reads as two different things.
+  return [{ label: page.landingLabel ?? "Home page", href: page.href, commentPath: page.commentPath }, ...kids];
 }
 
 // coloured-dot status row, reused by page + child rows in the rail
@@ -436,47 +474,58 @@ function SideRail() {
   const { config, enabled: commentsOn, toggle: toggleComments } = useReviewKit();
   const ACCENT = config.brand.accent;
   const logo = resolveLogo(config.brand.logo, "icon"); // icon-only: the wordmark squishes in the narrow rail
+  const rounds = config.bar?.rounds ?? false;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [lockH, setLockH] = useState<number | null>(null);
+  // Where the collapsed panel sits, and how far down it may grow. See the
+  // measuring effect below for why the rail is anchored rather than centred.
+  const [geom, setGeom] = useState<{ top: number; max: number } | null>(null);
+  // Past rounds the reviewer has opened by hand, keyed by page.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const hovered = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const activePage = useActivePage(config, pathname);
 
-  // On the slate ("/") the rail is pinned permanently open; elsewhere it peeks,
-  // expands on hover, and collapses when you click away.
+  // On the slate ("/") the rail is pinned permanently open — it is the only
+  // navigation on that page. Everywhere else it rests as a slim strip, expands
+  // on hover, and collapses when you click away. It does NOT open itself on
+  // load or refresh: a panel that opens over the design on every page load is
+  // in the way of the thing being reviewed.
   const forceOpen = pathname === "/";
   const isOpen = open || forceOpen;
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Lock the panel to its collapsed height so it doesn't jitter when it expands;
-  // expanded content flexes/scrolls within, capped at the panel's max-height.
-  // Measure while collapsed and visible (rail is display:none under 821px), and
-  // re-measure on resize so a 0-height measurement while hidden never sticks.
+  // THE RAIL IS ANCHORED, NOT CENTRED — and this is the fix for clicks that did
+  // nothing. Flex-centring means a panel that grows grows in BOTH directions, so
+  // the moment you pointed at the rail and it opened, every row jumped upward
+  // (~130px on a five-round config) and then kept moving while the sub-rows
+  // animated. You aimed at a row and clicked a different one, or the gap between
+  // two. So: measure the collapsed height, pin the panel at the position that
+  // height would have been centred at, and let it grow downward only. Nothing
+  // the reviewer is already pointing at ever moves.
+  //
+  // Measured while collapsed and visible (the rail is display:none under 821px),
+  // and re-measured on resize. The old version locked a MIN-height and measured
+  // on the way down from open, catching the still-expanded layout — which is why
+  // a rail that loaded short came back tall after one open and close.
   useLayoutEffect(() => {
     const measure = () => {
       const el = panelRef.current;
-      if (el && !isOpen) { const h = el.offsetHeight; if (h > 0) setLockH(h); }
+      if (!el || isOpen) return;
+      const h = el.offsetHeight;
+      if (h <= 0) return;
+      const vh = window.innerHeight;
+      const top = Math.max(12, Math.min((vh - h) / 2, vh - 12 - h));
+      setGeom({ top, max: Math.max(160, vh - top - 12) });
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [isOpen]);
-
-  // Peek open once on mount (skipped on the slate, where it's already pinned,
-  // and under reduced-motion).
-  useEffect(() => {
-    if (forceOpen) return;
-    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
-    const t1 = setTimeout(() => setOpen(true), 350);
-    const t2 = setTimeout(() => { if (!hovered.current) setOpen(false); }, 2200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [forceOpen]);
 
   // Clicking outside collapses the rail (not on the slate, where it stays open).
   useEffect(() => {
@@ -501,7 +550,15 @@ function SideRail() {
 
       {/* ---------- desktop rail ---------- */}
       <div className={`nwc-rail ${isOpen ? "open" : ""}`}>
-        <div ref={panelRef} className="panel" onMouseEnter={enter} onMouseLeave={leave} style={lockH ? { minHeight: lockH } : undefined}>
+        <div
+          ref={panelRef}
+          className="panel"
+          onMouseEnter={enter}
+          onMouseLeave={leave}
+          /* Before the first measurement the flex centring puts the panel in
+             exactly the place these values resolve to, so there is no jump. */
+          style={geom ? { alignSelf: "flex-start", marginTop: geom.top, maxHeight: geom.max } : undefined}
+        >
          <div className="r-inner">
           {/* whole header is the "back to start" target */}
           <Link href="/" aria-label="Back to start" className="r-head">
@@ -516,10 +573,19 @@ function SideRail() {
 
           <div className="r-scroll">
             <div className="r-groups">
-            {config.pages.map((page) => {
+            {config.pages.map((page, i) => {
               const isActive = isPageActive(page, pathname);
-              const kids = page.children ?? [];
+              const kids = railChildren(page);
               const multiOpt = (page.options?.length ?? 0) > 1;
+              const hasSub = kids.length > 0 || multiOpt;
+              // With bar.rounds on, everything below the first page is a past
+              // round: dimmed, and collapsed until the reviewer opens it. The
+              // current round is not collapsible — it is what they came for.
+              const past = rounds && i > 0;
+              const collapsible = past && hasSub;
+              // A past round you are currently INSIDE opens by default, but the
+              // caret still works — otherwise it is a control that does nothing.
+              const expanded = hasSub && (!collapsible || (openGroups[page.key] ?? isActive));
               const icon = page.label.slice(0, 1).toUpperCase();
 
               const rowInner = (
@@ -529,22 +595,40 @@ function SideRail() {
                     <span className="r-lbl">{page.label}</span>
                     <StatusRow status={page.status} />
                   </span>
+                  {collapsible && (
+                    <span className={`r-caret ${expanded ? "open" : ""}`} aria-hidden>
+                      <svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" /></svg>
+                    </span>
+                  )}
                 </>
               );
 
+              const groupClass = `r-group ${isActive ? "active " : ""}${past && !isActive ? "past " : ""}${expanded ? "expanded" : ""}`;
+
               return (
-                // Section with children (or a plain/single page) links to its landing;
-                // an options-only multi page keeps its non-link label + variant sub-rows.
-                <div key={page.key} className={`r-group ${isActive ? "active" : ""}`}>
-                  {(!kids.length && multiOpt) ? (
-                    <div className="r-item">{rowInner}</div>
-                  ) : (
+                // A section with sub-rows is a HEADER, not a link: a dropdown
+                // should behave like a dropdown, and its own landing page is the
+                // first sub-row (see railChildren). A page with nothing under it
+                // is still a plain link.
+                <div key={page.key} className={groupClass}>
+                  {!hasSub ? (
                     <Link href={pageHref(page)} className="r-item">{rowInner}</Link>
+                  ) : collapsible ? (
+                    <button
+                      type="button"
+                      className="r-item"
+                      aria-expanded={expanded}
+                      onClick={() => setOpenGroups((g) => ({ ...g, [page.key]: !expanded }))}
+                    >
+                      {rowInner}
+                    </button>
+                  ) : (
+                    <div className="r-item">{rowInner}</div>
                   )}
 
                   {kids.length > 0 && (
                     <div className="r-sub">
-                      {kids.map((c, i) => <RailChild key={i} child={c} depth={1} pathname={pathname} />)}
+                      {kids.map((c, ci) => <RailChild key={ci} child={c} depth={1} pathname={pathname} />)}
                     </div>
                   )}
                   {!kids.length && multiOpt && (

@@ -36,6 +36,10 @@ export type ReviewPage = {
   options?: ReviewOption[]; // design variants of THIS page (same basePath, different slug)
   children?: ReviewChild[]; // subpages (a section tree); distinct from options
   status?: { design?: Status; copy?: Status }; // shown on the slate + nav
+  // OPTIONAL. A section with children is a group header in the side rail, not a
+  // link, so its own landing page is listed as the first sub-row. This names it.
+  // Defaults to "Home page". Ignored when a child already points at `href`.
+  landingLabel?: string;
 };
 
 // Where the review nav sits. "top" is the classic bar (good early on, before the
@@ -61,6 +65,13 @@ export type ReviewConfig = {
   bar?: {
     position?: BarPosition; // "top" (default) | "side"
     autoHide?: boolean; // top bar only: hide on scroll down, reveal on scroll up / mouse-to-top. Default true.
+    // OPTIONAL, side rail only. Say that the top-level pages are ROUNDS of
+    // design, newest first. The first page is the current round: always open,
+    // full strength. Every page below it is a past round: dimmed, collapsed,
+    // and expanded by clicking it. Past rounds stay on the site because clients
+    // refer back to them, but they are not what this round is asking about.
+    // Default false, which leaves every group open and undimmed.
+    rounds?: boolean;
   };
   slate: {
     dashboardLabel: string; // e.g. "Website Review Dashboard"

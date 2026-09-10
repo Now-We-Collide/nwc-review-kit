@@ -39,7 +39,7 @@ npm install github:Now-We-Collide/nwc-review-kit
      supabaseUrl: "https://xxxx.supabase.co",
      supabaseAnonKey: "sb_publishable_...",
      brand: { name: "Now We Collide", logo: "nwc", accent: "#4ae0f9" },
-     bar: { position: "top", autoHide: true },   // or position: "side"
+     bar: { position: "top", autoHide: true },   // or position: "side", rounds: true
      slate: { dashboardLabel: "Website Review Dashboard", title: "...", client: "...", version: "v0.1", status: "For review" },
      pages: [ /* tabs + options + per-page design/copy status */ ],
    };
@@ -79,7 +79,18 @@ Your real page designs live at the routes named in `pages` (e.g. `/home/1`). The
 Set `bar.position`:
 
 - **`"top"` (default)** — a full-width bar that collapses into a floating pill on scroll. With `bar.autoHide` (default `true`) it slides out of the way when you scroll down and returns on scroll-up or when the pointer nears the top. Best early on, before the client's own site has a nav.
-- **`"side"`** — a slim rail on the right edge. It peeks open once on load, expands on hover, and collapses when you click away. Click a page to reveal its options (each page toggles independently), then click an option to go there. Use it once the site has its own nav so there aren't two competing top bars.
+- **`"side"`** — a slim rail on the right edge. It rests as a slim strip, expands when you point at it, and collapses when you move away or click elsewhere. It does not open itself on load. Use it once the site has its own nav so there aren't two competing top bars.
+
+  In the rail, a page with sub-pages (or with more than one option) is a group **header**, not a link: clicking it opens and closes the group. Its own `href` is added as the first sub-row, labelled "Home page" unless you set `landingLabel`, so the section's landing page is still one click away. That row is only added when no child already points at the same URL.
+
+### Rounds
+
+Set `bar.rounds: true` when the top-level pages are **rounds of feedback rather than pages of one site**, listed newest first:
+
+- The first page is the current round — always open, full strength, not collapsible.
+- Every page below it is a past round — dimmed and collapsed until clicked open. Past rounds stay on the site because clients refer back to them when discussing the current one, but they are not what this round is asking about.
+
+Leave it off (the default) when the pages are the pages of one site.
 
 ## Brand logo
 
@@ -94,6 +105,7 @@ Set `bar.position`:
 Turn on commenting with the **Comment** button, then click anywhere on the page to drop a pin. Each comment:
 
 - **Replies** thread underneath it; **edit** any comment in place; the box **grows as you type**.
+- **Send is single-shot.** The button disables and reads "Saving…" for the round-trip, so a slow save cannot be clicked twice. Reported from Caidence's 4 Sep review pass, where thirteen comments arrived as twenty-two rows.
 - **Authorship is anonymous** — each browser gets a hidden id, and the UI labels people "Reviewer 1 / 2 / …" (and your own as "You"). No name is asked for.
 - Captures **rich placement context** for the AI feedback loop: what element it's on (text/label/role), the section heading, and — if placed beside rather than on something — the nearest element and direction. Hovering while commenting highlights the element you're targeting.
 

@@ -89,16 +89,61 @@ The kit is **self-styled** (injected CSS). It does NOT require Tailwind, and doe
 
 `ReviewConfig`: `{ projectId, supabaseUrl, supabaseAnonKey, brand, bar?, slate, pages }`
 - `brand`: `{ name: string; logo?: "nwc" | "thebird" | string; accent: string }` — `logo` optional: a bundled key (`"nwc"` default, `"thebird"`) or a URL/path; `accent` is a hex used for the comment button, pins and slate.
-- `bar?`: `{ position?: "top" | "side"; autoHide?: boolean }` — `position` defaults to `"top"`; `autoHide` (top bar only, default `true`) hides it on scroll-down and reveals on scroll-up/pointer-to-top.
+- `bar?`: `{ position?: "top" | "side"; autoHide?: boolean; rounds?: boolean }` — `position` defaults to `"top"`; `autoHide` (top bar only, default `true`) hides it on scroll-down and reveals on scroll-up/pointer-to-top; `rounds` (side rail only, default `false`) says the top-level pages are **rounds of design, newest first** — see below.
 - `slate`: `{ dashboardLabel, title, client, version, status }`.
 - `pages[]`: `{ key, label, basePath?, href?, commentPath?, stub?, options?, children?, status? }`.
   - `options[]`: `{ slug, label, descriptor? }` — design **variants** of one page (same `basePath`, different `slug`). Multiple = a switchable comparison.
-  - `children[]`: **subpages** (a section tree), distinct from options. Each child: `{ label, href, commentPath?, stub?, status?, children? }` — a real page with its own URL and status; nests to any depth. A section with children links to its landing (`href`) AND lists the children beneath, each with its own status.
+  - `children[]`: **subpages** (a section tree), distinct from options. Each child: `{ label, href, commentPath?, stub?, status?, children? }` — a real page with its own URL and status; nests to any depth. In the side rail a section with children (or with more than one option) is a group **header**, not a link: clicking it opens and closes the group. Its own `href` is listed as the first sub-row so it stays reachable — automatically, and only when no child already points at that URL.
+  - `landingLabel?`: names that auto-added first sub-row. Defaults to `"Home page"`.
   - `href?`: the page's landing/link target (overrides `basePath`/`slug`).
   - `commentPath?`: a stable key for this page's comments, so identity survives a URL change (defaults to the URL). Works on pages and children.
   - `stub?`: mark a placeholder page; rendered with a distinct badge/marker.
   - `status?`: `{ design?: {label, tone}, copy?: {label, tone} }`, `tone` is `"good" | "warn" | "todo"`, shown as coloured dots on the slate + nav (pages and children).
 
+## Rounds (side rail)
+
+Set `bar.rounds: true` when the top-level pages are **rounds of feedback rather than pages of one site**, listed newest first. The rail then reads them that way:
+
+- The **first** page is the current round. It is always open and at full strength, and its header does not collapse.
+- **Every page below it** is a past round: dimmed, and collapsed until the reviewer clicks it open. Past rounds stay on the site because clients refer back to them when discussing the current one, but they are not what this round is asking about.
+- A past round you are currently inside opens by default, and can still be collapsed.
+
+Leave it off (the default) when the pages are the pages of one site — everything then stays open and undimmed, as before.
+
 ## Reviewing comments with Claude
 
 See `CLAUDE_FEEDBACK_LOOP.md` for the prompt that lets Claude read and resolve comments.
+
+## UI rules (from the vault)
+
+<!-- ui-rules v1 -->
+
+How anything built here should be laid out and sized. Read before designing or building any
+interface — a page, a section, a component, a layout change.
+
+1. **Nothing below 16px — for text that has to be READ.** Two tiers: anything read in sequence
+   has a hard 16px floor; FURNITURE and DATA SURFACES (charts, tables, diagram keys, code
+   blocks, labels inside a reproduced product UI) are exempt, but each exemption must be
+   labelled where it lives, with its reason.
+2. **No text as a graphic element.** No kickers, eyebrows, small uppercase mono captions, or
+   metadata rows repeating what is said elsewhere.
+3. **Deleting beats shrinking.** When a screen feels too full, remove items rather than
+   reduce their size.
+4. **A label goes next to the thing it labels.**
+5. **Do not invent structure that was not asked for.**
+6. **Test:** for every element on screen, what does the reader learn from it? No answer means
+   remove it.
+7. **Primary text takes the primary token; secondary text is genuinely secondary.** "Is this
+   what the reader came here for" decides which, and the answer is usually primary.
+8. **An inherited container is not neutral.** Long-form text gets its own measure token,
+   34rem / ~68 characters, applied per block.
+9. **Derive it when the content can decide. Name it when the content cannot. Never a
+   measurement.** Derived: column count follows the number of items. Named choice: light or
+   dark, image left or right. Never: widths, pixel values, "columns: 3".
+10. **Sub-page depth reads as height.** Home hero full-screen, sub-page hero about two thirds,
+    an article header smaller again and sized by its own content.
+11. **Verify the ON state of anything whose off-state is the default.** A switch that was
+    never wired looks exactly like a switch that is off.
+
+**Underneath all of it: function over form, roughly 80/20.** When a layout looks better and
+reads worse, it is wrong.
